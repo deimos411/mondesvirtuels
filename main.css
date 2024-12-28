@@ -12,7 +12,6 @@
       line-height: 1.5;
       background-color: #fff;
       color: #333;
-      
   }
 
   header {
@@ -93,7 +92,7 @@
       }
   }
 
-  .image-container img {
+  .image-container>img {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -126,6 +125,14 @@
       text-align: center;
       background: rgba(0, 0, 0, 0.6);
       transition: background-color 0.3s ease;
+  }
+
+  .image-title img {
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
+      animation: none;
+      /* Ensure icons are not animated */
   }
 
   /* Hover effect for the title */
@@ -169,7 +176,7 @@
   /* Responsive Adjustments */
   @media (max-width: 480px) {
       .image-container {
-          height: 150px;
+          height: 180px;
       }
 
       .image-title {
