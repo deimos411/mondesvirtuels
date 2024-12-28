@@ -126,5 +126,16 @@ gtag("config", "G-1P3CVXY9KX");
     <p>Copyright © 2024 Josquin BERNARD ( deimos )</p>
 
     <p><a href="https://virtualworlds.fun/" target="_blank" rel="noreferrer noopener">( English version )</a></a></p>
+
+      <script>
+      // JavaScript to apply random animation speeds
+      document.querySelectorAll('.image-container').forEach((container) => {
+        const randomDuration = (Math.random() * 8 + 4).toFixed(2) // Random duration between 4s and 8s
+        container.style.setProperty(
+          '--animation-duration',
+          `${randomDuration}s`
+        )
+      })
+    </script>
   </body>
 </html>
