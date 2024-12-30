@@ -67,6 +67,23 @@
      padding-top: 10px;
  }
 
+ .container {
+     display: flex;
+     justify-content: center;
+     /* Align horizontally */
+     align-items: center;
+     /* Align vertically */
+     height: 60px;
+     /* Set height for the container */
+     position: relative;
+ }
+
+ .image-logo {
+     max-width: 100%;
+     height: auto;
+     margin: 0 10px;
+ }
+
  /* Scroll-to-Top Button */
  #scrollToTop {
      position: fixed;
