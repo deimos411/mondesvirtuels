@@ -23,9 +23,10 @@
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:site" content="@virtualworldsfr" />	    
     
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
-    <script src="main.js"></script>
-    <!-- Extrait de code de la balise Google (gtag.js) ajouté par Site Kit -->
+  <link rel="stylesheet" type="text/css" href="main.css" />
+  <link rel="stylesheet" type="text/css" href="footer.css" />
+  
+  <!-- Extrait de code de la balise Google (gtag.js) ajouté par Site Kit -->
 
 <!-- Extrait Google Analytics ajouté par Site Kit -->
 <script src="https://www.googletagmanager.com/gtag/js?id=G-1P3CVXY9KX" id="google_gtagjs-js" async></script>
@@ -47,18 +48,16 @@ gtag("config", "G-1P3CVXY9KX");
         Découvrez des mondes virtuels fantastiques en 3D depuis votre navigateur
         !
       </h2>
-      <a>
-        Plongez dans les <a href="/atlantide/">abysses</a>, abritez-vous dans une <a href="/hall/">taverne médiévale</a>,
-        gardez l'équilibre sur de frêles <a href="iles/">ponts de bois</a>, et tentez l'expérience
+      <p>
+        Plongez dans les abysses, abritez-vous dans une taverne médiévale,
+        gardez l'équilibre sur de frêles ponts de bois, et tentez l'expérience
         de la 3D temps réel depuis votre ordinateur, mobile ou Xbox.
       </p>
-  
+      <p>
+        Cliquez sur les vignettes ci-dessous pour explorer de nouveaux mondes !
+      </p>
 
-    <p>
-      Cliquez sur les vignettes ci-dessous pour découvrir de nouveaux mondes!
-    </p>
-
-  <section class="panoramic-images">
+      <section class="panoramic-images">
         <a href="/atlantide/">
           <div class="image-container atlantide">
             <img src="images/atlantide.jpg" alt="Image du monde Atlantide" />
@@ -149,25 +148,66 @@ gtag("config", "G-1P3CVXY9KX");
         </a>
       </section>
 
-    <p>Pour bien démarrer, consultez la <a href="aide/">rubrique d’aide</a> concernant la navigation dans les mondes virtuels. Vous verrez c’est très simple.</p>
+      <p>
+        Une aide est disponible directement dans le monde Consultez la rubrique
+        d'aide concernant la navigation dans les mondes virtuels. Vous verrez,
+        c'est très simple. Bonne découverte !
+      </p>
 
-    <p>Bonne découverte!</p>
+      <p>Deimos</p>
+    </main>
+    <footer>
+      <div class="footer-container">
+        <!-- Resources Column -->
+        <div class="footer-column">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="#">A propos ( a venir ) </a></li>
+            <li><a href="#">Aide</a></li>
+          </ul>
+        </div>
 
-    <p>Deimos</p>
+        <!-- Social Column -->
+        <div class="footer-column">
+          <h3>Social</h3>
+          <ul>
+            <li><a href="https://x.com/virtualworldsfr" target="_blank">X</a></li>
+            <li><a href="#">Discord ( Bientôt ) </a></li>
+            <li><a href="https://www.tiktok.com/@virtualworlds.fun?lang=fr" target="_blank">TikTok</a></li>
+            <li><a href="https://www.facebook.com/lesmondesvirtuels/" target="_blank">Facebook</a></li>
+          </ul>
+        </div>
 
-    <p>Copyright © 2024 Josquin BERNARD ( deimos )</p>
+        <!-- Worlds-->
+        <div class="footer-column">
+          <h3>Mondes</h3>
+          <ul>
+            <li><a href="/atlantide/">Atlantide</a></li>
+            <li><a href="/arbres/">Cité des arbres</a></li>
+            <li><a href="/enfer/">Enfer & Paradis</a></li>
+            <li><a href="/hall/">Grand Hall</a></li>
+            <li><a href="/halloween/">Halloween</a></li>
+            <li><a href="/hiver/">Hiver</a></li>
+            <li><a href="/iles/">Iles Flottantes</a></li>
+            <li><a href="/safari/">Safari</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 1997-2024 Josquin BERNARD. All Rights Reserved.</p>
+       
+          Hébergé sur
+          <a href="https://github.com/deimos411/mondesvirtuels/"
+            target="_blank">GitHub pages</a
+          >. 
+          Restauré à l'aide de <a href="https://www.blender.org/" target="_blank">Blender</a> & <a href="https://www.babylonjs.com/" target="_blank">BabylonJS</a>
+        </p>
+      </div>
 
-    <p><a href="https://virtualworlds.fun/" target="_blank" rel="noreferrer noopener">( English version )</a></a></p>
+      <!-- Scroll-to-Top Button -->
+      <button id="scrollToTop" title="Retour au début">↑</button>
+    </footer> 
 
-      <script>
-      // JavaScript to apply random animation speeds
-      document.querySelectorAll('.image-container').forEach((container) => {
-        const randomDuration = (Math.random() * 8 + 4).toFixed(2) // Random duration between 4s and 8s
-        container.style.setProperty(
-          '--animation-duration',
-          `${randomDuration}s`
-        )
-      })
-    </script>
+  <script src="./main.js"></script>
   </body>
 </html>
