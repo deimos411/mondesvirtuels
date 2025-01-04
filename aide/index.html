@@ -1,188 +1,338 @@
 <!DOCTYPE html>
 <html lang="fr">
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
 
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta charset="utf-8" />
-     
-  <link rel="shortcut icon" type="image/png" href="images/favico.png"/>
-    
+    <link rel="shortcut icon" type="image/png" href="images/favico.png" />
 
-  <title>Aide à la navigation</title>
-	<meta name="description" content="Comment naviguer dans un monde virtuel? Suivez ce guide pour apprendre à se déplacer facilement et explorer un univers en 3D." />	
-	<link rel="canonical" href="https://mondesvirtuels.com/ide/" />
-	<meta property="og:locale" content="fr_FR" />
-	<meta property="og:type" content="article" />
-	<meta property="og:title" content="A propos des mondes virtuels" />
-	<meta property="og:description" content="Aide à la navigation - Mondes Virtuels" />
-	<meta property="og:url" content="https://mondesvirtuels.com/aide/" />
-	<meta property="og:site_name" content="Mondes Virtuels" />
-	<meta property="article:publisher" content="https://www.facebook.com/lesmondesvirtuels" />
-	<meta property="article:modified_time" content="2024-11-05T07:27:17+00:00" />
-	<meta property="og:image" content="https://mondesvirtuels.com/wp-content/uploads/2021/06/15dec02_perenoel.jpg" />
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:site" content="@virtualworldsfr" />
-	<meta name="twitter:label1" content="Durée de lecture estimée" />
-	<meta name="twitter:data1" content="7 minutes" />
+    <title>Aide à la navigation</title>
+    <meta
+      name="description"
+      content="Comment naviguer dans un monde virtuel? Suivez ce guide pour apprendre à se déplacer facilement et explorer un univers en 3D."
+    />
+    <link rel="canonical" href="https://mondesvirtuels.com/ide/" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="A propos des mondes virtuels" />
+    <meta
+      property="og:description"
+      content="Aide à la navigation - Mondes Virtuels"
+    />
+    <meta property="og:url" content="https://mondesvirtuels.com/aide/" />
+    <meta property="og:site_name" content="Mondes Virtuels" />
+    <meta
+      property="article:publisher"
+      content="https://www.facebook.com/lesmondesvirtuels"
+    />
+    <meta
+      property="article:modified_time"
+      content="2024-11-05T07:27:17+00:00"
+    />
+    <meta
+      property="og:image"
+      content="https://mondesvirtuels.com/wp-content/uploads/2021/06/15dec02_perenoel.jpg"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@virtualworldsfr" />
+    <meta name="twitter:label1" content="Durée de lecture estimée" />
+    <meta name="twitter:data1" content="7 minutes" />
 
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
-    <script src="main.js"></script>
+    <link rel="stylesheet" type="text/css" href="../main.css" />
+    <link rel="stylesheet" type="text/css" href="../footer.css" />
+    <link rel="stylesheet" type="text/css" href="../table.css" />
+
     <!-- Extrait de code de la balise Google (gtag.js) ajouté par Site Kit -->
 
-<!-- Extrait Google Analytics ajouté par Site Kit -->
-<script src="https://www.googletagmanager.com/gtag/js?id=G-1P3CVXY9KX" id="google_gtagjs-js" async></script>
-<script id="google_gtagjs-js-after">
-window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}
-gtag("set","linker",{"domains":["mondesvirtuels.com"]});
-gtag("js", new Date());
-gtag("set", "developer_id.dZTNiMT", true);
-gtag("config", "G-1P3CVXY9KX");
-</script>
-
+    <!-- Extrait Google Analytics ajouté par Site Kit -->
+    <script
+      src="https://www.googletagmanager.com/gtag/js?id=G-1P3CVXY9KX"
+      id="google_gtagjs-js"
+      async
+    ></script>
+    <script id="google_gtagjs-js-after">
+      window.dataLayer = window.dataLayer || []
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      gtag('set', 'linker', { domains: ['mondesvirtuels.com'] })
+      gtag('js', new Date())
+      gtag('set', 'developer_id.dZTNiMT', true)
+      gtag('config', 'G-1P3CVXY9KX')
+    </script>
   </head>
-  
-    <h1>Aide à la navigation</h1>   
+  <body>
+    <header>
+      <h1 class="breadcrumb">
+        <a href="../index.html">Accueil</a> > Aide à la navigation
+      </h1>
+    </header>
 
-    <p>
-     Choisissez votre méthode d’exploration :
-    </p>
+    <main>
+      <p>Choisissez votre mode d’exploration :</p>
 
-    <p>
-      <a href="#navigation-souris-clavier">Clavier/Souris</a>
-      <a href="#navigation-smartphone">Smartphone/Tablette</a>
-      <a href="#navigation-manette">Manette Xbox</a>
-    </p>
-    
-    
-    
-    <h2>Navigation Clavier/Souris :</h2>
+      <p><a href="#navigation-souris-clavier">Clavier/Souris</a></p>
+      <p><a href="#navigation-smartphone">Smartphone/Tablette</a></p>
+      <p><a href="#navigation-manette">Manette Xbox</a></p>
 
-    <p>
-      <table>
-        <tbody>
+      <!-- Namespace container -->
+      <div class="key-instructions">
+        <h2 id="navigation-souris-clavier">Navigation avec Clavier/Souris :</h2>
+        <h1>Instructions</h1>
+
+        <table>
+          <tbody>
+            <tr>
+              <td><img src="images/mouse_left-150x150.png" width="75px" /></td>
+              <td>
+                Pour observer votre environnement, maintenez le bouton gauche de
+                la souris enfoncé tout en déplaçant le curseur pour orienter
+                votre vue.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                Pour vous déplacer, utilisez les touches directionnelles du
+                clavier ou les touches ZQSD, comme dans un jeu vidéo de type
+                FPS.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p></p>
+        <table>
           <tr>
-            <td><img src="../images/mouse_left-150x150.png" width="75px"></td>
-            <td>Pour observer autour de soi, maintenir appuyé le bouton gauche de la souris puis déplacer le curseur.</td>
+            <th>Flèches</th>
+            <th>Actions</th>
           </tr>
-        </tbody>
-      </table>
-    </p>
-
-    <p>Pour se déplacer, appuyer sur les touches de direction du clavier ou utiliser les touches ZQSD comme pour un FPS :</p>
-
-
-    <p>
-      <table>
-        <tbody>
           <tr>
-            <td><img src="../images/up-arrow-button-300x285.png" width="75px"></td>
+            <td><span class="key">↑</span></td>
             <td>Avancer</td>
           </tr>
           <tr>
-            <td><img src="../images/down-arrow-button-300x285.png" width="75px"></td>
+            <td><span class="key">↓</span></td>
             <td>Reculer</td>
           </tr>
-           <tr>
-            <td><img src="../images/left-arrow-button-300x285.png" width="75px"></td>
+          <tr>
+            <td><span class="key">←</span></td>
             <td>Déplacer vers la gauche</td>
           </tr>
-           <tr>
-            <td><img src="../images/right-arrow-button-300x285.png" width="75px"></td>
+          <tr>
+            <td><span class="key">→</span></td>
             <td>Déplacer vers la droite</td>
           </tr>
-        </tbody>
-      </table>
-    </p>
+        </table>
 
-    <p>
+        <table>
+          <tr>
+            <th>Touches</th>
+            <th>Actions</th>
+          </tr>
+          <tr>
+            <td><span class="key">Z</span></td>
+            <td>Avancer</td>
+          </tr>
+          <tr>
+            <td><span class="key">S</span></td>
+            <td>Reculer</td>
+          </tr>
+          <tr>
+            <td><span class="key">Q</span></td>
+            <td>Déplacer vers la gauche</td>
+          </tr>
+          <tr>
+            <td><span class="key">D</span></td>
+            <td>Déplacer vers la droite</td>
+          </tr>
+        </table>
+
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                Utiliser à la fois les touches de direction et le bouton gauche
+                de la souris pour vous déplacer librement.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                Les icones suivantes sont présentes en bas à droite de l'écran :
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p></p>
+
+        <table>
+          <tr>
+            <th>Icones</th>
+            <th>Actions</th>
+          </tr>
+          <tr>
+            <td><img src="images/aide_camera.png" width="75px" /></td>
+            <td>Changer de caméra ( touche raccourci C )</td>
+          </tr>
+          <tr>
+            <td><img src="images/aide_expand.png" width="75px" /></td>
+            <td>Plein écran ( touche raccourci X )</td>
+          </tr>
+          <tr>
+            <td><img src="images/aide_fly.png" width="75px" /></td>
+            <td>Voler ( touche raccourci F )</td>
+          </tr>
+          <tr>
+            <td><img src="images/aide_walk.png" width="75px" /></td>
+            <td>Marcher ( touche raccourci M )</td>
+          </tr>
+        </table>
+      </div>
+
+      <p>
+        Prêt pour la découverte? Voici la liste des
+        <a href="../mondes/" target="_blank" rel="noreferrer noopener">
+          mondes à explorer</a
+        >
+      </p>
+
+      <h2 id="navigation-smartphone">Navigation sur Smartphone/Tablette :</h2>
+
+      <p>
+        Penser à utiliser le smartphone/tablette en mode paysage pour un
+        meilleur confort de navigation.
+      </p>
+
+      <p>
+        Déplacez votre doigt n’importe où sur l’écran pour vous déplacer. Si
+        vous souhaitez une navigation avancée utilisez les deux cercles en bas
+        de votre écran :
+      </p>
+
       <table>
         <tbody>
           <tr>
-            <td>OU</td>            
-          </tr>          
-        </tbody>
-      </table>
-    </p>
-
-    <p>
-      <table>
-        <tbody>
-          <tr>
-            <td><img src="../images/z-button-300x263.png" width="75px"></td>
-            <td>touche Z pour avancer</td>
+            <td><img src="images/aide_camera.png" width="75px" /></td>
+            <td>
+              Pour observer autour de soi, appuyer sur le cercle oeil et
+              déplacer le pouce droit vers le haut/bas/gauche/droite
+            </td>
           </tr>
           <tr>
-            <td><img src="../images/s-button-300x263.png" width="75px"></td>
-            <td>touche S pour reculer</td>
-          </tr>
-           <tr>
-            <td><img src="../images/q-button-300x263.png" width="75px"></td>
-            <td>touche Q pour se deplacer vers la gauche</td>
-          </tr>
-           <tr>
-            <td><img src="../images/d-button-300x263.png" width="75px"></td>
-            <td>touche Q pour se deplacer vers la droite</td>
-          </tr>
-        </tbody>
-      </table>
-    </p>
-
-    <p>Utiliser à la fois les touches de direction et le bouton gauche de la souris pour se déplacer librement.</p>
-
-    <p>Les icones situées en bas à droite de l’écran sont utiles lors de vos déplacements :</p>
-
-    <p>
-      <table>
-        <tbody>
-          <tr>
-            <td><img src="../images/aide_camera.png" width="75px"></td>
-            <td>changer de caméra ( raccourci C )</td>
-          </tr>
-          <tr>
-            <td><img src="../images/aide_expand.png" width="75px"></td>
+            <td><img src="images/aide_expand.png" width="75px" /></td>
             <td>plein écran ( raccourci X )</td>
           </tr>
-           <tr>
-            <td><img src="../images/aide_fly.png" width="75px"></td>
-            <td>voler ( raccourci F )</td>
-          </tr>
-           <tr>
-            <td><img src="../images/aide_walk.png" width="75px"></td>
-            <td>marcher ( raccourci M )</td>
-          </tr>
         </tbody>
       </table>
-    </p>
-     
-    <p>Prêt pour la découverte? Voici la liste des <a href="../mondes/"  target="_blank" rel="noreferrer noopener"> mondes à explorer</a></p>
 
+      <h2 id="navigation-manette">Navigation avec Manette Xbox :</h2>
+    </main>
 
-    <h2>Navigation sur Smartphone/Tablette :</h2>
-   
-    <p>Penser à utiliser le smartphone/tablette en mode paysage pour un meilleur confort de navigation.</p>
+    <footer>
+      <div class="footer-container">
+        <!-- Resources Column -->
+        <div class="footer-column">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="../index.html">Accueil</a></li>
+            <li><a href="#">A propos ( a venir ) </a></li>
+            <li><a href="aide/">Aide</a></li>
+          </ul>
+        </div>
 
-    <p>Déplacez votre doigt n’importe où sur l’écran pour vous déplacer. Si vous souhaitez une navigation avancée utilisez les deux cercles en bas de votre écran :</p>^
+        <!-- Social Column -->
+        <div class="footer-column">
+          <h3>Social</h3>
+          <ul>
+            <li>
+              <a href="https://x.com/virtualworldsfr" target="_blank">X</a>
+            </li>
+            <li><a href="#">Discord ( Bientôt ) </a></li>
+            <li>
+              <a
+                href="https://www.tiktok.com/@virtualworlds.fun?lang=fr"
+                target="_blank"
+                >TikTok</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.facebook.com/lesmondesvirtuels/"
+                target="_blank"
+                >Facebook</a
+              >
+            </li>
+          </ul>
+        </div>
 
-     <p>
-      <table>
-        <tbody>
-          <tr>
-            <td><img src="../images/aide_camera.png" width="75px"></td>
-            <td>Pour observer autour de soi, appuyer sur le cercle oeil et déplacer le pouce droit vers le haut/bas/gauche/droite</td>
-          </tr>
-          <tr>
-            <td><img src="../images/aide_expand.png" width="75px"></td>
-            <td>plein écran ( raccourci X )</td>
-          </tr>
-         
-        </tbody>
-      </table>
-    </p>
+        <!-- Worlds-->
+        <div class="footer-column">
+          <h3>Mondes</h3>
+          <ul>
+            <li><a href="/atlantide/">Atlantide</a></li>
+            <li><a href="/arbres/">Cité des arbres</a></li>
+            <li><a href="/enfer/">Enfer & Paradis</a></li>
+            <li><a href="/hall/">Grand Hall</a></li>
+            <li><a href="/halloween/">Halloween</a></li>
+            <li><a href="/hiver/">Hiver</a></li>
+            <li><a href="/iles/">Iles Flottantes</a></li>
+            <li><a href="/safari/">Safari</a></li>
+          </ul>
+        </div>
+      </div>
 
-    <p>Copyright © 2024 Josquin BERNARD ( deimos )</p>
+      <div class="footer-bottom">
+        <p class="container">
+          Restauré à l'aide de
+          <a href="https://www.blender.org/" target="_blank"
+            ><img
+              src="../images/blender_logo.png"
+              class="image-logo"
+              alt="Blender 3D"
+              title="Blender 3D"
+          /></a>
+          +
+          <a href="https://www.babylonjs.com/" target="_blank"
+            ><img
+              src="../images/babylonjs3.png"
+              class="image-logo"
+              alt="BabylonJS framework"
+              title="BabylonJS framework"
+          /></a>
+        </p>
 
-    <p><a href="https://virtualworlds.fun/" target="_blank" rel="noreferrer noopener">( English version )</a></a></p>
-  
-  
+        <p>
+          Hébergé gratuitement sur
+          <a href="https://github.com/deimos411/mondesvirtuels/" target="_blank"
+            >GitHub pages</a
+          >.
+        </p>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 1997-2024 Josquin BERNARD. All Rights Reserved.</p>
+        <p>
+          (
+          <a href="https://virtualworlds.fun/" target="_blank"
+            >English version</a
+          >
+          )
+        </p>
+      </div>
+      <!-- Scroll-to-Top Button -->
+      <button id="scrollToTop" title="Retour au début">↑</button>
+    </footer>
+
+    <script src="../main.js"></script>
   </body>
 </html>

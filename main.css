@@ -24,11 +24,15 @@
    h2,
    p {
        margin: 10px 20px;
-       text-align: center;
    }
 
    a {
        color: #34eae4;
+   }
+
+   .breadcrumb {
+       text-align: left;
+       padding: 0 20px;
    }
 
    /* Panoramic Images Container */
