@@ -1,0 +1,8 @@
+   /* Reset and Base Styles */
+   /* Responsive Adjustments */
+    @media (max-width: 480px) {
+        .help-image {
+            height: 180px;
+        }
+     
+    }
