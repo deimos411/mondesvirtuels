@@ -26,6 +26,10 @@
        margin: 10px 20px;
    }
 
+   p {
+      font-size: 0.95rem;    
+   }
+
    a {
        color: #34eae4;
    }

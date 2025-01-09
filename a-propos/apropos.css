@@ -1,0 +1,13 @@
+   /* Reset and Base Styles */
+   /* Responsive Adjustments */
+    
+   main {
+    margin : 20px
+   }
+   
+   @media (max-width: 480px) {
+        .help-image {
+            height: 180px;
+        }
+     
+    }
