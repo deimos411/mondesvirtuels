@@ -247,17 +247,17 @@ footer {
     animation: none;
 }
 
- .responsive-image {
-     width: 100%;
-     /* L'image s'adapte à la largeur de son conteneur */
-     max-width: 768px;
-     /* Taille maximale (utile pour les grands écrans) */
-     height: auto;
-     /* Maintient les proportions de l'image */
-     display: block;
-     margin: 0 auto;
-     /* Centrage horizontal */
- }
+.responsive-image {
+    width: 100%;
+    /* L'image s'adapte à la largeur de son conteneur */
+    max-width: 768px;
+    /* Taille maximale (utile pour les grands écrans) */
+    height: auto;
+    /* Maintient les proportions de l'image */
+    display: block;
+    margin: 0 auto;
+    /* Centrage horizontal */
+}
 
 
 /* World-specific colors */
@@ -435,14 +435,18 @@ footer {
    ========================================================================== */
 
 /* Medium screens get 2 columns */
-@media (min-width: 768px) { /* its not possible to use var inside media query declaration */
+@media (min-width: 768px) {
+
+    /* its not possible to use var inside media query declaration */
     .panoramic-images {
-        grid-template-columns: repeat(2, 1fr);        
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 /* Large screens get 4 columns */
-@media (min-width: 1200px) { /* its not possible to use var inside media query declaration */
+@media (min-width: 1200px) {
+
+    /* its not possible to use var inside media query declaration */
     .panoramic-images {
         grid-template-columns: repeat(4, 1fr);
         /* Four columns for panoramic images */
@@ -451,8 +455,9 @@ footer {
 
 
 
-@media (max-width: 768px) { /* its not possible to use var inside media query declaration */
-    
+@media (max-width: 768px) {
+    /* its not possible to use var inside media query declaration */
+
     .footer-container {
         flex-direction: column;
         align-items: center;
