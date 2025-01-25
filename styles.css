@@ -73,6 +73,7 @@ h3 {
     margin-bottom: var(--spacing-sm);
 }
 
+main,
 p {
     font-size: 0.95rem;
     margin: var(--spacing-sm) var(--spacing-md);
@@ -85,7 +86,25 @@ a {
 }
 
 /* ==========================================================================
-   4. Layout & Container
+   4. Alignement
+   ========================================================================== */
+.align-left {
+    text-align: left;
+}
+
+.align-right {
+    text-align: right;
+}
+
+
+.download-button {
+    width: 24px;
+    height: auto;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   5. Layout & Container
    ========================================================================== */
 .container {
     max-width: 1200px;
@@ -101,7 +120,7 @@ header {
 }
 
 /* ==========================================================================
-   5. Footer
+   6. Footer
    ========================================================================== */
 footer {
     background: var(--bg-gradient);
@@ -167,7 +186,7 @@ footer {
 }
 
 /* ==========================================================================
-   6. Panoramic Images Grid
+   7. Panoramic Images Grid
    ========================================================================== */
 /* Update the base layout for small screens */
 .panoramic-images {
@@ -294,7 +313,7 @@ footer {
 }
 
 /* ==========================================================================
-   7. Key Instructions Table
+   8. Key Instructions Table
    ========================================================================== */
 .key-instructions {
     font-family: 'Arial', sans-serif;
@@ -305,7 +324,7 @@ footer {
 
 .key-instructions table {
     width: 100%;
-    max-width: 600px;
+    max-width: 800px;
     margin: var(--spacing-md) auto;
     border-collapse: collapse;
     background: var(--text-light);
@@ -351,7 +370,7 @@ footer {
 }
 
 /* ==========================================================================
-   8. A Propos Page
+   9. A Propos Page
    ========================================================================== */
 .apropos-container {
     display: flex;
@@ -384,7 +403,7 @@ footer {
 }
 
 /* ==========================================================================
-   9. Utilities
+   10. Utilities
    ========================================================================== */
 #scrollToTop {
     position: fixed;
@@ -406,7 +425,7 @@ footer {
 }
 
 /* ==========================================================================
-   10. Animations
+   11. Animations
    ========================================================================== */
 @keyframes shine {
     from {
@@ -431,7 +450,7 @@ footer {
 }
 
 /* ==========================================================================
-   11. Media Queries
+   12. Media Queries
    ========================================================================== */
 
 /* Medium screens get 2 columns */
