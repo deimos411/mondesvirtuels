@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spaceship Escape</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        background: black;
+      }
+      #score1 {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 24px;
+      }
+      #score2 {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="score1">Player 1 Score: 0</div>
+    <div id="score2">Player 2 Score: 0</div>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas')
+      const ctx = canvas.getContext('2d')
+      const scoreElement1 = document.getElementById('score1')
+      const scoreElement2 = document.getElementById('score2')
+
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+
+      // Constants
+      const GRAVITY = 1000.0
+      const THRUST = 0.15
+      const ROTATION_SPEED = 0.5
+      const NUMBER_STARS = 500
+
+      // Star generation
+      const stars = []
+      for (let i = 0; i < NUMBER_STARS; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2,
+        })
+      }
+
+      // Classes definition
+      class Planet {
+        constructor(x, y, radius) {
+          this.x = x
+          this.y = y
+          this.radius = radius
+        }
+
+        draw() {
+          // Draw planet surface
+          ctx.beginPath()
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+          const gradient = ctx.createRadialGradient(
+            this.x,
+            this.y,
+            this.radius * 0.5,
+            this.x,
+            this.y,
+            this.radius
+          )
+          gradient.addColorStop(0, '#1e90ff') // Light blue center
+          gradient.addColorStop(1, '#00008b') // Dark blue edge
+          ctx.fillStyle = gradient
+          ctx.fill()
+          ctx.closePath()
+
+          // Draw planet texture (random craters)
+          for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2
+            const distance = Math.random() * this.radius
+            const craterX = this.x + Math.cos(angle) * distance
+            const craterY = this.y + Math.sin(angle) * distance
+            const craterRadius = Math.random() * 5 + 2
+
+            ctx.beginPath()
+            ctx.arc(craterX, craterY, craterRadius, 0, Math.PI * 2)
+            ctx.fillStyle = '#00008b' // Dark blue craters
+            ctx.fill()
+          }
+
+          // Draw planet atmosphere (glow)
+          ctx.beginPath()
+          ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2)
+          ctx.strokeStyle = 'rgba(30, 144, 255, 0.3)' // Light blue glow
+          ctx.lineWidth = 10
+          ctx.stroke()
+        }
+      }
+
+      class Capsule {
+        constructor(x, y) {
+          this.x = x
+          this.y = y
+          this.radius = 7.5
+          this.collected = false
+        }
+
+        draw() {
+          if (!this.collected) {
+            ctx.beginPath()
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+            ctx.fillStyle = 'lime'
+            ctx.fill()
+            ctx.closePath()
+
+            // Add glow effect
+            ctx.beginPath()
+            ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2)
+            ctx.strokeStyle = 'lime'
+            ctx.globalAlpha = 0.3
+            ctx.stroke()
+            ctx.globalAlpha = 1.0
+          }
+        }
+      }
+
+      class Laser {
+        constructor(x, y, angle, color) {
+          this.x = x
+          this.y = y
+          this.angle = angle
+          this.speed = 10 // Speed of the laser
+          this.color = color
+          this.radius = 2 // Size of the laser
+          this.lifetime = 1000 // Lifetime of the laser in milliseconds
+        }
+
+        draw() {
+          ctx.beginPath()
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+          ctx.fillStyle = this.color
+          ctx.fill()
+          ctx.closePath()
+        }
+
+        update(deltaTime) {
+          // Update position
+          this.x += Math.cos(this.angle) * this.speed
+          this.y += Math.sin(this.angle) * this.speed
+
+          // Decrease lifetime
+          this.lifetime -= deltaTime
+
+          // Wrap around the screen
+          if (this.x < 0) this.x = canvas.width
+          if (this.x > canvas.width) this.x = 0
+          if (this.y < 0) this.y = canvas.height
+          if (this.y > canvas.height) this.y = 0
+        }
+      }
+
+      class Spaceship {
+        constructor(x, y, color, controls) {
+          this.x = x
+          this.y = y
+          this.radius = 10
+          this.angle = 0
+          this.velocityX = 0
+          this.velocityY = 0
+          this.thrusting = false
+          this.score = 0
+          this.color = color
+          this.controls = controls
+          this.lasers = [] // Array to store lasers fired by this spaceship
+        }
+
+        draw() {
+          ctx.save()
+          ctx.translate(this.x, this.y)
+          ctx.rotate(this.angle)
+
+          ctx.beginPath()
+          ctx.moveTo(10, 0)
+          ctx.lineTo(-10, -7)
+          ctx.lineTo(-10, 7)
+          ctx.closePath()
+          ctx.fillStyle = this.color
+          ctx.fill()
+
+          if (this.thrusting) {
+            ctx.beginPath()
+            ctx.moveTo(-10, -5)
+            ctx.lineTo(-15, 0)
+            ctx.lineTo(-10, 5)
+            ctx.strokeStyle = 'red'
+            ctx.stroke()
+          }
+
+          ctx.restore()
+        }
+
+        fireLaser() {
+          const laser = new Laser(this.x, this.y, this.angle, this.color)
+          this.lasers.push(laser)
+        }
+
+        update(deltaTime) {
+          this.x += this.velocityX
+          this.y += this.velocityY
+          this.wrapAround()
+
+          // Update lasers and remove expired ones
+          this.lasers.forEach((laser, index) => {
+            laser.update(deltaTime)
+            if (laser.lifetime <= 0) {
+              this.lasers.splice(index, 1) // Remove the laser if its lifetime is over
+            }
+          })
+        }
+
+        wrapAround() {
+          if (this.x < 0) this.x = canvas.width
+          if (this.x > canvas.width) this.x = 0
+          if (this.y < 0) this.y = canvas.height
+          if (this.y > canvas.height) this.y = 0
+        }
+
+        applyGravity(planet) {
+          const dx = planet.x - this.x
+          const dy = planet.y - this.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          const directionX = dx / distance
+          const directionY = dy / distance
+          const force = GRAVITY / (distance * distance)
+          this.velocityX += force * directionX
+          this.velocityY += force * directionY
+        }
+
+        applyThrust() {
+          if (this.thrusting) {
+            this.velocityX += Math.cos(this.angle) * THRUST
+            this.velocityY += Math.sin(this.angle) * THRUST
+          }
+        }
+
+        checkCollisionWithPlanet(planet) {
+          const dx = planet.x - this.x
+          const dy = planet.y - this.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          return distance < planet.radius + this.radius
+        }
+
+        checkCollisionWithCapsules(capsules, scoreElement) {
+          capsules.forEach((capsule) => {
+            if (!capsule.collected) {
+              const dx = capsule.x - this.x
+              const dy = capsule.y - this.y
+              const distance = Math.sqrt(dx * dx + dy * dy)
+
+              if (distance < capsule.radius + this.radius) {
+                capsule.collected = true
+                this.score += 100
+                scoreElement.textContent = `Player ${
+                  this === game.spaceship1 ? 1 : 2
+                } Score: ${this.score}`
+              }
+            }
+          })
+        }
+      }
+
+      class Game {
+        constructor() {
+          this.planet = new Planet(
+            canvas.width / 2,
+            canvas.height / 2,
+            canvas.width * 0.05
+          )
+          this.spaceship1 = new Spaceship(
+            canvas.width / 4,
+            canvas.height / 4,
+            'white',
+            { left: 'q', right: 'd', thrust: 'z', fire: 'Shift' }
+          )
+          this.spaceship2 = new Spaceship(
+            (canvas.width / 4) * 3,
+            canvas.height / 4,
+            'cyan',
+            {
+              left: 'ArrowLeft',
+              right: 'ArrowRight',
+              thrust: 'ArrowUp',
+              fire: ' ',
+            }
+          )
+          this.capsules = this.createCapsules(5)
+          this.explosionParticles = []
+          this.setupControls()
+
+          this.lastTime = 0 // Track the last frame time
+        }
+
+        createCapsules(num) {
+          const capsules = []
+          for (let i = 0; i < num; i++) {
+            let capsule
+            do {
+              capsule = new Capsule(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height
+              )
+            } while (
+              Math.sqrt(
+                (capsule.x - this.planet.x) ** 2 +
+                  (capsule.y - this.planet.y) ** 2
+              ) <
+              this.planet.radius + capsule.radius + 50
+            )
+            capsules.push(capsule)
+          }
+          return capsules
+        }
+
+        setupControls() {
+          window.addEventListener('keydown', (e) => {
+            if (e.key === this.spaceship1.controls.left)
+              this.spaceship1.angle -= ROTATION_SPEED
+            if (e.key === this.spaceship1.controls.right)
+              this.spaceship1.angle += ROTATION_SPEED
+            if (e.key === this.spaceship1.controls.thrust)
+              this.spaceship1.thrusting = true
+            if (e.key === this.spaceship1.controls.fire)
+              this.spaceship1.fireLaser()
+
+            if (e.key === this.spaceship2.controls.left)
+              this.spaceship2.angle -= ROTATION_SPEED
+            if (e.key === this.spaceship2.controls.right)
+              this.spaceship2.angle += ROTATION_SPEED
+            if (e.key === this.spaceship2.controls.thrust)
+              this.spaceship2.thrusting = true
+            if (e.key === this.spaceship2.controls.fire)
+              this.spaceship2.fireLaser()
+          })
+
+          window.addEventListener('keyup', (e) => {
+            if (e.key === this.spaceship1.controls.thrust)
+              this.spaceship1.thrusting = false
+            if (e.key === this.spaceship2.controls.thrust)
+              this.spaceship2.thrusting = false
+          })
+        }
+
+        createExplosion(spaceship) {
+          const dx = spaceship.x - this.planet.x
+          const dy = spaceship.y - this.planet.y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+          const angle = Math.atan2(dy, dx)
+
+          const explosionX =
+            this.planet.x + Math.cos(angle) * this.planet.radius
+          const explosionY =
+            this.planet.y + Math.sin(angle) * this.planet.radius
+
+          for (let i = 0; i < 50; i++) {
+            this.explosionParticles.push({
+              x: explosionX,
+              y: explosionY,
+              velocityX: (Math.random() - 0.5) * 4,
+              velocityY: (Math.random() - 0.5) * 4,
+              size: Math.random() * 3 + 1,
+              alpha: 1.0,
+            })
+          }
+        }
+
+        updateExplosion() {
+          this.explosionParticles.forEach((particle, index) => {
+            particle.x += particle.velocityX
+            particle.y += particle.velocityY
+            particle.alpha -= 0.02
+
+            if (particle.alpha <= 0) {
+              this.explosionParticles.splice(index, 1)
+            }
+          })
+        }
+
+        drawExplosion() {
+          this.explosionParticles.forEach((particle) => {
+            ctx.beginPath()
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255, 165, 0, ${particle.alpha})`
+            ctx.fill()
+          })
+        }
+
+        resetSpaceship(spaceship) {
+          if (spaceship === this.spaceship1) {
+            this.spaceship1.x = canvas.width / 4
+            this.spaceship1.y = canvas.height / 4
+            this.spaceship1.velocityX = 0
+            this.spaceship1.velocityY = 0
+            this.spaceship1.angle = 0
+            this.spaceship1.thrusting = false
+          } else if (spaceship === this.spaceship2) {
+            this.spaceship2.x = (canvas.width / 4) * 3
+            this.spaceship2.y = canvas.height / 4
+            this.spaceship2.velocityX = 0
+            this.spaceship2.velocityY = 0
+            this.spaceship2.angle = 0
+            this.spaceship2.thrusting = false
+          }
+        }
+
+        checkLaserCollisions() {
+          // Check if Player 1's lasers hit Player 2
+          this.spaceship1.lasers.forEach((laser, index) => {
+            const dx = laser.x - this.spaceship2.x
+            const dy = laser.y - this.spaceship2.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance < this.spaceship2.radius + laser.radius) {
+              this.createExplosion(this.spaceship2)
+              this.resetSpaceship(this.spaceship2)
+              this.spaceship1.lasers.splice(index, 1) // Remove the laser
+            }
+          })
+
+          // Check if Player 2's lasers hit Player 1
+          this.spaceship2.lasers.forEach((laser, index) => {
+            const dx = laser.x - this.spaceship1.x
+            const dy = laser.y - this.spaceship1.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance < this.spaceship1.radius + laser.radius) {
+              this.createExplosion(this.spaceship1)
+              this.resetSpaceship(this.spaceship1)
+              this.spaceship2.lasers.splice(index, 1) // Remove the laser
+            }
+          })
+        }
+
+        update(deltaTime) {
+          // Update spaceships with deltaTime
+          this.spaceship1.update(deltaTime)
+          this.spaceship2.update(deltaTime)
+
+          // Update spaceships
+          this.spaceship1.applyGravity(this.planet)
+          this.spaceship1.applyThrust()
+          this.spaceship1.update()
+          this.spaceship1.checkCollisionWithCapsules(
+            this.capsules,
+            scoreElement1
+          )
+
+          this.spaceship2.applyGravity(this.planet)
+          this.spaceship2.applyThrust()
+          this.spaceship2.update()
+          this.spaceship2.checkCollisionWithCapsules(
+            this.capsules,
+            scoreElement2
+          )
+
+          // Check for collisions with the planet
+          if (this.spaceship1.checkCollisionWithPlanet(this.planet)) {
+            this.createExplosion(this.spaceship1)
+            this.resetSpaceship(this.spaceship1)
+          }
+          if (this.spaceship2.checkCollisionWithPlanet(this.planet)) {
+            this.createExplosion(this.spaceship2)
+            this.resetSpaceship(this.spaceship2)
+          }
+
+          // Check for laser collisions
+          this.checkLaserCollisions()
+
+          // Update explosion particles
+          this.updateExplosion()
+        }
+
+        draw() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+          // Draw stars
+          ctx.fillStyle = 'grey'
+          stars.forEach((star) => {
+            ctx.beginPath()
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
+            ctx.fill()
+          })
+
+          // Draw capsules
+          this.capsules.forEach((capsule) => capsule.draw())
+
+          // Draw planet
+          this.planet.draw()
+
+          // Draw spaceships
+          this.spaceship1.draw()
+          this.spaceship2.draw()
+
+          // Draw lasers
+          this.spaceship1.lasers.forEach((laser) => laser.draw())
+          this.spaceship2.lasers.forEach((laser) => laser.draw())
+
+          // Draw explosion
+          this.drawExplosion()
+        }
+
+        gameLoop(currentTime) {
+          const deltaTime = currentTime - this.lastTime // Calculate time elapsed since the last frame
+          this.lastTime = currentTime
+
+          this.update(deltaTime)
+          this.draw()
+          requestAnimationFrame((time) => this.gameLoop(time))
+        }
+      }
+
+      // Initialize and start the game
+      const game = new Game()
+      game.gameLoop()
+    </script>
+  </body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maze with Player and Fireworks</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Canvas for rendering the maze -->
+    <canvas id="mazeCanvas"></canvas>
+
+    <script>
+      // Canvas and context
+      const canvas = document.getElementById('mazeCanvas')
+      const ctx = canvas.getContext('2d')
+
+      // Maze settings
+      const tileSize = 20 // Size of each tile in pixels
+      const cols = 40 // Number of columns in the maze
+      const rows = 30 // Number of rows in the maze
+
+      // Set canvas size based on maze dimensions
+      canvas.width = cols * tileSize
+      canvas.height = rows * tileSize
+
+      // Generate the maze
+      const maze = generateMaze(cols, rows)
+
+      // Player settings
+      const player = {
+        x: 1, // Start at the top-left corner
+        y: 1,
+        color: 'red',
+        size: tileSize,
+      }
+
+      // Exit settings (defined AFTER maze generation)
+      const exit = findExitPosition(maze) // Find a valid exit position on a path
+
+      // Fireworks particles
+      const particles = []
+
+      // Render the maze and player
+      renderMaze(maze)
+      renderPlayer()
+      renderExit()
+
+      // Handle player movement
+      document.addEventListener('keydown', (e) => {
+        const key = e.key
+        let newX = player.x
+        let newY = player.y
+
+        // Calculate new position based on key pressed
+        if (key === 'ArrowUp') newY--
+        if (key === 'ArrowDown') newY++
+        if (key === 'ArrowLeft') newX--
+        if (key === 'ArrowRight') newX++
+
+        // Check if the new position is valid (not a wall)
+        if (maze[newY][newX] === 0) {
+          player.x = newX
+          player.y = newY
+        }
+
+        // Check if the player reached the exit
+        if (player.x === exit.x && player.y === exit.y) {
+          createFireworks()
+          setTimeout(() => {
+            alert('You win!')
+            resetGame()
+          }, 1000) // Show fireworks for 1 second before resetting
+        }
+
+        // Re-render the maze and player
+        renderMaze(maze)
+        renderPlayer()
+        renderExit()
+      })
+
+      // Generate a maze using depth-first search
+      function generateMaze(cols, rows) {
+        const maze = Array.from({ length: rows }, () => Array(cols).fill(1)) // Fill with walls
+        const stack = []
+        const start = { x: 1, y: 1 } // Start position
+
+        maze[start.y][start.x] = 0 // Open the starting cell
+        stack.push(start)
+
+        while (stack.length > 0) {
+          const current = stack.pop()
+          const neighbors = getUnvisitedNeighbors(current, maze)
+
+          if (neighbors.length > 0) {
+            stack.push(current)
+            const next = neighbors[Math.floor(Math.random() * neighbors.length)]
+            maze[next.y][next.x] = 0 // Open the cell
+            maze[(current.y + next.y) / 2][(current.x + next.x) / 2] = 0 // Open the wall between
+            stack.push(next)
+          }
+        }
+
+        return maze
+      }
+
+      // Find a valid exit position on a path
+      function findExitPosition(maze) {
+        // Start searching from the bottom-right corner
+        for (let y = maze.length - 1; y >= 0; y--) {
+          for (let x = maze[0].length - 1; x >= 0; x--) {
+            if (maze[y][x] === 0) {
+              // Check if it's a path
+              return { x, y, color: 'green', size: tileSize }
+            }
+          }
+        }
+        // Fallback: If no path is found, place the exit at (1, 1)
+        return { x: 1, y: 1, color: 'green', size: tileSize }
+      }
+
+      // Get unvisited neighbors for maze generation
+      function getUnvisitedNeighbors(cell, maze) {
+        const neighbors = []
+        const directions = [
+          { x: 2, y: 0 },
+          { x: -2, y: 0 },
+          { x: 0, y: 2 },
+          { x: 0, y: -2 },
+        ]
+
+        for (const dir of directions) {
+          const x = cell.x + dir.x
+          const y = cell.y + dir.y
+          if (
+            x > 0 &&
+            x < maze[0].length - 1 &&
+            y > 0 &&
+            y < maze.length - 1 &&
+            maze[y][x] === 1
+          ) {
+            neighbors.push({ x, y })
+          }
+        }
+
+        return neighbors
+      }
+
+      // Render the maze on the canvas
+      function renderMaze(maze) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = 'black' // Wall color
+
+        for (let y = 0; y < maze.length; y++) {
+          for (let x = 0; x < maze[y].length; x++) {
+            if (maze[y][x] === 1) {
+              ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize)
+            }
+          }
+        }
+      }
+
+      // Render the player on the canvas
+      function renderPlayer() {
+        ctx.fillStyle = player.color
+        ctx.fillRect(
+          player.x * tileSize,
+          player.y * tileSize,
+          player.size,
+          player.size
+        )
+      }
+
+      // Render the exit on the canvas
+      function renderExit() {
+        ctx.fillStyle = exit.color
+        ctx.beginPath()
+        ctx.arc(
+          exit.x * tileSize + tileSize / 2, // Center X
+          exit.y * tileSize + tileSize / 2, // Center Y
+          tileSize / 2, // Radius
+          0,
+          Math.PI * 2 // Full circle
+        )
+        ctx.fill()
+      }
+
+      // Create fireworks particles
+      function createFireworks() {
+        for (let i = 0; i < 100; i++) {
+          particles.push({
+            x: exit.x * tileSize + tileSize / 2,
+            y: exit.y * tileSize + tileSize / 2,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            size: Math.random() * 3 + 1,
+            velocity: {
+              x: (Math.random() - 0.5) * 10,
+              y: (Math.random() - 0.5) * 10,
+            },
+            life: 100, // Particle lifetime
+          })
+        }
+
+        // Start the fireworks animation
+        animateFireworks()
+      }
+
+      // Animate fireworks particles
+      function animateFireworks() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        renderMaze(maze)
+        renderPlayer()
+        renderExit()
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const particle = particles[i]
+          ctx.fillStyle = particle.color
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Update particle position
+          particle.x += particle.velocity.x
+          particle.y += particle.velocity.y
+          particle.life--
+
+          // Remove dead particles
+          if (particle.life <= 0) {
+            particles.splice(i, 1)
+          }
+        }
+
+        // Continue animation if particles remain
+        if (particles.length > 0) {
+          requestAnimationFrame(animateFireworks)
+        }
+      }
+
+      // Reset the game
+      function resetGame() {
+        player.x = 1
+        player.y = 1
+        particles.length = 0 // Clear particles
+        renderMaze(maze)
+        renderPlayer()
+        renderExit()
+      }
+    </script>
+  </body>
+</html>

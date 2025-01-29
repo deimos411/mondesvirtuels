@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conway's Game of Life</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #000;
+      }
+      canvas {
+        border: 1px solid #333;
+        background-color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas')
+      const ctx = canvas.getContext('2d')
+
+      // Constants
+      const GRID_SIZE = 40 // Number of cells in each row/column
+      const CELL_SIZE = canvas.width / GRID_SIZE // Size of each cell in pixels
+      const LIVING_CELL_COLOR = '#8A2BE2' // Blue for living cells
+      const DEAD_CELL_COLOR = '#fff' // Black for dead cells
+      const GRID_LINE_COLOR = '#333' // Dark gray for grid lines
+      const SIMULATION_SPEED = 300 // Time between updates in milliseconds
+      const INITIAL_LIVING_PROBABILITY = 0.3 // 30% chance for a cell to start alive
+
+      let grid = createGrid(GRID_SIZE)
+
+      // Initialize the grid with random living cells
+      function createGrid(size) {
+        return Array.from({ length: size }, () =>
+          Array.from({ length: size }, () =>
+            Math.random() < INITIAL_LIVING_PROBABILITY ? 1 : 0
+          )
+        )
+      }
+
+      // Draw the grid on the canvas
+      function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = DEAD_CELL_COLOR // Background color
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        for (let x = 0; x < GRID_SIZE; x++) {
+          for (let y = 0; y < GRID_SIZE; y++) {
+            if (grid[x][y] === 1) {
+              ctx.fillStyle = LIVING_CELL_COLOR // Living cells in blue
+              ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+            }
+            ctx.strokeStyle = GRID_LINE_COLOR // Grid lines in dark gray
+            ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+          }
+        }
+      }
+
+      // Compute the next generation of the grid
+      function getNextGeneration() {
+        const newGrid = createGrid(GRID_SIZE)
+
+        for (let x = 0; x < GRID_SIZE; x++) {
+          for (let y = 0; y < GRID_SIZE; y++) {
+            const neighbors = countNeighbors(x, y)
+            if (grid[x][y] === 1) {
+              newGrid[x][y] = neighbors === 2 || neighbors === 3 ? 1 : 0
+            } else {
+              newGrid[x][y] = neighbors === 3 ? 1 : 0
+            }
+          }
+        }
+
+        return newGrid
+      }
+
+      // Count the number of living neighbors for a cell
+      function countNeighbors(x, y) {
+        let count = 0
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            if (i === 0 && j === 0) continue // Skip the cell itself
+            const newX = x + i
+            const newY = y + j
+            if (
+              newX >= 0 &&
+              newX < GRID_SIZE &&
+              newY >= 0 &&
+              newY < GRID_SIZE
+            ) {
+              count += grid[newX][newY]
+            }
+          }
+        }
+        return count
+      }
+
+      // Update the grid and redraw it
+      function update() {
+        grid = getNextGeneration()
+        drawGrid()
+      }
+
+      // Handle mouse clicks to toggle cell states
+      canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect()
+        const mouseX = event.clientX - rect.left
+        const mouseY = event.clientY - rect.top
+
+        const cellX = Math.floor(mouseX / CELL_SIZE)
+        const cellY = Math.floor(mouseY / CELL_SIZE)
+
+        // Toggle the cell state
+        grid[cellX][cellY] = grid[cellX][cellY] === 1 ? 0 : 1
+
+        // Redraw the grid immediately
+        drawGrid()
+      })
+
+      // Start the simulation
+      drawGrid() // Draw the initial grid
+      setInterval(update, SIMULATION_SPEED) // Update the grid at a fixed interval
+    </script>
+  </body>
+</html>

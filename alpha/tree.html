@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tree with Up to 5 Branches and Faster Growth in Babylon.js</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  </head>
+  <body>
+    <canvas id="renderCanvas" style="width: 100%; height: 100%"></canvas>
+    <script>
+      // Get the canvas element
+      const canvas = document.getElementById('renderCanvas')
+
+      // Generate the Babylon.js engine
+      const engine = new BABYLON.Engine(canvas, true)
+
+      // Create the scene
+      const createScene = function () {
+        const scene = new BABYLON.Scene(engine)
+
+        // Create a camera and position it
+        const camera = new BABYLON.ArcRotateCamera(
+          'camera',
+          Math.PI / 2,
+          Math.PI / 4,
+          50,
+          BABYLON.Vector3.Zero(),
+          scene
+        )
+        camera.attachControl(canvas, true)
+
+        // Create a light
+        const light = new BABYLON.HemisphericLight(
+          'light',
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        )
+        light.intensity = 0.7
+
+        // Variables for tree growth
+        const initialBranchLength = 2 // Length of the trunk
+        const branchDiameter = 0.1 // Diameter of each branch
+        const growthSpeed = 0.5 // Delay between branch growth (in milliseconds) - Twice as fast
+        const maxBranches = 5000 // Maximum number of branches
+        const branchingProbability = 0.4 // Probability of a branch splitting into multiple branches
+        let currentBranchCount = 0 // Counter for branches
+
+        // Function to create a branch
+        function createBranch(start, direction, length, diameter) {
+          const branch = BABYLON.MeshBuilder.CreateCylinder(
+            'branch',
+            {
+              height: length,
+              diameter: diameter,
+            },
+            scene
+          )
+
+          // Position the branch
+          branch.position = start.add(direction.scale(length / 2))
+
+          // Align the branch with the direction vector
+          const axis = new BABYLON.Vector3(0, 1, 0) // Default cylinder orientation
+          const rotationAxis = BABYLON.Vector3.Cross(
+            axis,
+            direction
+          ).normalize()
+          const rotationAngle = Math.acos(BABYLON.Vector3.Dot(axis, direction))
+          branch.rotationQuaternion = BABYLON.Quaternion.RotationAxis(
+            rotationAxis,
+            rotationAngle
+          )
+
+          // Update the last branch end position
+          const end = start.add(direction.scale(length))
+
+          return { mesh: branch, end: end }
+        }
+
+        // Function to generate a random 3D direction
+        function getRandomDirection(parentDirection) {
+          const angleX = ((Math.random() - 0.5) * Math.PI) / 4 // Random angle in X-axis
+          const angleY = ((Math.random() - 0.5) * Math.PI) / 4 // Random angle in Y-axis
+          const angleZ = ((Math.random() - 0.5) * Math.PI) / 4 // Random angle in Z-axis
+
+          // Rotate the parent direction by the random angles
+          const direction = parentDirection.clone()
+          direction.rotateByQuaternionAroundPointToRef(
+            BABYLON.Quaternion.RotationYawPitchRoll(angleY, angleX, angleZ),
+            BABYLON.Vector3.Zero(),
+            direction
+          )
+
+          return direction.normalize()
+        }
+
+        // Function to grow the tree
+        function growTree(start, direction, length, diameter) {
+          if (currentBranchCount >= maxBranches) return
+
+          // Create the new branch
+          const branch = createBranch(start, direction, length, diameter)
+          currentBranchCount++
+
+          // Decide if this branch should split into multiple branches
+          if (Math.random() < branchingProbability && diameter > 0.03) {
+            // Randomly decide how many child branches to create (up to 5)
+            const numChildBranches = Math.floor(Math.random() * 5) + 1 // Between 1 and 5
+
+            // Create child branches
+            for (let i = 0; i < numChildBranches; i++) {
+              const childDirection = getRandomDirection(direction)
+
+              // Reduce the length and diameter of child branches
+              const childLength = length * 0.7 // Child branches are shorter
+              const childDiameter = diameter * 0.7 // Child branches are thinner
+
+              // Schedule the growth of child branches
+              setTimeout(
+                () =>
+                  growTree(
+                    branch.end,
+                    childDirection,
+                    childLength,
+                    childDiameter
+                  ),
+                growthSpeed
+              )
+            }
+          } else {
+            // Continue growing in the same direction
+            setTimeout(
+              () => growTree(branch.end, direction, length, diameter),
+              growthSpeed
+            )
+          }
+        }
+
+        // Start growing the tree from the ground
+        const initialDirection = new BABYLON.Vector3(0, 1, 0) // Start growing upwards
+        const initialDiameter = 0.2 // Initial trunk diameter
+        growTree(
+          BABYLON.Vector3.Zero(),
+          initialDirection,
+          initialBranchLength,
+          initialDiameter
+        )
+
+        return scene
+      }
+
+      // Call the createScene function
+      const scene = createScene()
+
+      // Render the scene
+      engine.runRenderLoop(function () {
+        scene.render()
+      })
+
+      // Resize the engine on window resize
+      window.addEventListener('resize', function () {
+        engine.resize()
+      })
+    </script>
+  </body>
+</html>
