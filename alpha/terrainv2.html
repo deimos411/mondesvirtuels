@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Head section remains the same -->
+  <head>
+    <!-- Previous head content remains exactly the same -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Natural Landscape</title>
+    <style>
+      /* Previous styles remain exactly the same */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      .controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+        max-width: 300px;
+      }
+
+      .controls h2 {
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .controls p {
+        font-size: 14px;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      @media (max-width: 768px) {
+        .controls {
+          top: auto;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 90%;
+          max-width: none;
+        }
+      }
+
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 2000;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="renderCanvas"></canvas>
+    <div class="controls">
+      <h2>Camera Controls</h2>
+      <p>Left Click + Drag: Rotate camera</p>
+      <p>Right Click + Drag: Pan camera</p>
+      <p>Mouse Wheel: Zoom in/out</p>
+      <p>Touch: One finger to rotate, two fingers to zoom</p>
+    </div>
+    <div id="loadingScreen" class="loading">Loading Scene...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script>
+    <script>
+      class NaturalLandscape {
+        static TERRAIN_CONFIG = {
+          SIZE: 3000,
+          SUBDIVISIONS: 1000,
+          HEIGHT_SCALE: 40,
+          NOISE_SCALE: 0.002,
+        }
+
+        static VEGETATION_CONFIG = {
+          TREE_COUNT: 7000,
+          TREE_HEIGHT: 10,
+          TREE_TRUNK_DIAMETER: 3,
+          TREE_TOP_HEIGHT: 40,
+          TREE_TOP_DIAMETER: 0,
+          TREE_BASE_DIAMETER: 15,
+          TREE_NOISE_SCALE: 0.003,
+          TREE_DENSITY_THRESHOLD: 0.6,
+          TREE_ONLY_NOISE_SCALE: 0.001, // Smaller scale for larger tree-only zones
+          TREE_ONLY_THRESHOLD: 0.7, // Higher threshold for exclusive tree zones
+        }
+
+        static ROCK_CONFIG = {
+          ROCK_COUNT: 4000,
+          MIN_SCALE: 10.5,
+          MAX_SCALE: 30,
+          ROCK_NOISE_SCALE: 0.005,
+          ROCK_DENSITY_THRESHOLD: 0.55,
+          MIXED_AREA_THRESHOLD: 0.4,
+        }
+
+        static CAMERA_CONFIG = {
+          MIN_RADIUS: 500, // Minimum camera distance
+          MAX_RADIUS: 2000, // Maximum camera distance
+        }
+
+        constructor(canvasId) {
+          this.canvas = document.getElementById(canvasId)
+          this.engine = new BABYLON.Engine(this.canvas, true)
+          this.scene = new BABYLON.Scene(this.engine)
+
+          // Initialize permutation table for noise generation
+          this.p = new Array(512)
+          for (let i = 0; i < 256; i++) {
+            this.p[i] = Math.floor(Math.random() * 256)
+          }
+          for (let i = 0; i < 256; i++) {
+            this.p[256 + i] = this.p[i]
+          }
+        }
+
+        createScene() {
+          // Camera setup
+          this.camera = new BABYLON.ArcRotateCamera(
+            'camera',
+            0,
+            Math.PI / 3,
+            100,
+            BABYLON.Vector3.Zero(),
+            this.scene
+          )
+          this.camera.attachControl(this.canvas, true)
+          this.camera.lowerRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.MIN_RADIUS
+          this.camera.upperRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.MAX_RADIUS
+
+          // Lighting setup
+          const light = new BABYLON.HemisphericLight(
+            'light',
+            new BABYLON.Vector3(0, 1, 0),
+            this.scene
+          )
+          light.intensity = 0.7
+
+          const dirLight = new BABYLON.DirectionalLight(
+            'dirLight',
+            new BABYLON.Vector3(-1, -2, -1),
+            this.scene
+          )
+          dirLight.intensity = 0.5
+
+          this.createTerrain()
+          this.addTrees()
+          this.addRocks()
+
+          return this.scene
+        }
+
+        createTerrain() {
+          const { SIZE, SUBDIVISIONS, HEIGHT_SCALE, NOISE_SCALE } =
+            NaturalLandscape.TERRAIN_CONFIG
+
+          const terrainMaterial = new BABYLON.StandardMaterial(
+            'terrainMat',
+            this.scene
+          )
+          // terrainMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.6, 0.3)
+          terrainMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.9)
+          terrainMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1)
+
+          const ground = new BABYLON.Mesh('ground', this.scene)
+          const vertexData = new BABYLON.VertexData()
+          const positions = []
+          const indices = []
+          const uvs = []
+
+          // Generate mesh vertices
+          for (let z = 0; z <= SUBDIVISIONS; z++) {
+            for (let x = 0; x <= SUBDIVISIONS; x++) {
+              const xPos = (x / SUBDIVISIONS - 0.5) * SIZE
+              const zPos = (z / SUBDIVISIONS - 0.5) * SIZE
+
+              const nx = xPos * NOISE_SCALE
+              const nz = zPos * NOISE_SCALE
+              let height = this.generateNoise(nx, nz) * HEIGHT_SCALE
+              height += this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2)
+              height += this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+              positions.push(xPos, height, zPos)
+              uvs.push(x / SUBDIVISIONS, z / SUBDIVISIONS)
+            }
+          }
+
+          // Generate indices
+          for (let z = 0; z < SUBDIVISIONS; z++) {
+            for (let x = 0; x < SUBDIVISIONS; x++) {
+              const bottomLeft = z * (SUBDIVISIONS + 1) + x
+              const bottomRight = bottomLeft + 1
+              const topLeft = (z + 1) * (SUBDIVISIONS + 1) + x
+              const topRight = topLeft + 1
+
+              indices.push(bottomLeft, bottomRight, topRight)
+              indices.push(bottomLeft, topRight, topLeft)
+            }
+          }
+
+          const normals = []
+          BABYLON.VertexData.ComputeNormals(positions, indices, normals)
+
+          vertexData.positions = positions
+          vertexData.indices = indices
+          vertexData.normals = normals
+          vertexData.uvs = uvs
+          vertexData.applyToMesh(ground)
+
+          ground.material = terrainMaterial
+          ground.receiveShadows = true
+        }
+
+        addTrees() {
+          const {
+            TREE_COUNT,
+            TREE_HEIGHT,
+            TREE_TRUNK_DIAMETER,
+            TREE_TOP_HEIGHT,
+            TREE_TOP_DIAMETER,
+            TREE_BASE_DIAMETER,
+            TREE_NOISE_SCALE,
+            TREE_DENSITY_THRESHOLD,
+            TREE_ONLY_NOISE_SCALE,
+            TREE_ONLY_THRESHOLD,
+          } = NaturalLandscape.VEGETATION_CONFIG
+          const { SIZE, HEIGHT_SCALE, NOISE_SCALE } =
+            NaturalLandscape.TERRAIN_CONFIG
+
+          // Constants for vertical positioning
+          const TRUNK_HEIGHT = TREE_HEIGHT // Original trunk height
+          const LEAVES_HEIGHT = TREE_TOP_HEIGHT // Original leaves height
+
+          // Material for trunk (brown)
+          const trunkMaterial = new BABYLON.StandardMaterial(
+            'trunkMat',
+            this.scene
+          )
+          trunkMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.2, 0.1)
+
+          // Create 5 leaf materials (green to orange)
+          const leafMaterials = [
+            new BABYLON.StandardMaterial('leavesMat1', this.scene),
+            new BABYLON.StandardMaterial('leavesMat2', this.scene),
+            new BABYLON.StandardMaterial('leavesMat3', this.scene),
+            new BABYLON.StandardMaterial('leavesMat4', this.scene),
+            new BABYLON.StandardMaterial('leavesMat5', this.scene),
+          ]
+
+          // Define colors (green to orange gradient)
+          leafMaterials[0].diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.1) // Dark green
+          leafMaterials[1].diffuseColor = new BABYLON.Color3(0.3, 0.7, 0.3) // Medium green
+          leafMaterials[2].diffuseColor = new BABYLON.Color3(0.5, 0.8, 0.2) // Light green
+          leafMaterials[3].diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.1) // Yellow-green
+          leafMaterials[4].diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.1) // Orange
+
+          // Create 5 leaf templates (one per material)
+          const leafTemplates = []
+          for (let i = 0; i < 5; i++) {
+            const leaves = BABYLON.MeshBuilder.CreateCylinder(
+              `leavesTemplate${i}`,
+              {
+                height: LEAVES_HEIGHT,
+                diameter: TREE_BASE_DIAMETER,
+                diameterTop: TREE_TOP_DIAMETER,
+              },
+              this.scene
+            )
+            leaves.material = leafMaterials[i]
+            leaves.setEnabled(false) // Hide templates
+            leafTemplates.push(leaves)
+          }
+
+          // Trunk template with ORIGINAL dimensions
+          const trunkTemplate = BABYLON.MeshBuilder.CreateCylinder(
+            'trunkTemplate',
+            {
+              height: TRUNK_HEIGHT,
+              diameter: TREE_TRUNK_DIAMETER,
+            },
+            this.scene
+          )
+          trunkTemplate.material = trunkMaterial
+          trunkTemplate.setEnabled(false) // Hide template
+
+          let treesPlaced = 0
+          while (treesPlaced < TREE_COUNT) {
+            const x = Math.random() * SIZE - SIZE / 2
+            const z = Math.random() * SIZE - SIZE / 2
+
+            // Calculate tree density and tree-only zone density
+            const treeDensity =
+              (this.generateNoise(x * TREE_NOISE_SCALE, z * TREE_NOISE_SCALE) +
+                1) /
+              2
+            const treeOnlyDensity =
+              (this.generateNoise(
+                x * TREE_ONLY_NOISE_SCALE,
+                z * TREE_ONLY_NOISE_SCALE
+              ) +
+                1) /
+              2
+
+            // Get base terrain height
+            const nx = x * NOISE_SCALE
+            const nz = z * NOISE_SCALE
+            const height =
+              this.generateNoise(nx, nz) * HEIGHT_SCALE +
+              this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2) +
+              this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+            // Place tree if in a tree-only zone or high-density area
+            if (
+              (treeOnlyDensity > TREE_ONLY_THRESHOLD ||
+                treeDensity > TREE_DENSITY_THRESHOLD) &&
+              height > HEIGHT_SCALE * 0.1
+            ) {
+              // Create an instance of the trunk
+              const trunkInstance = trunkTemplate.createInstance(
+                `trunkInstance${treesPlaced}`
+              )
+              trunkInstance.position = new BABYLON.Vector3(x, height, z)
+
+              // Randomly select a leaf template (0-4)
+              const leafTemplate = leafTemplates[Math.floor(Math.random() * 5)]
+
+              // Create an instance of the leaves
+              const leavesInstance = leafTemplate.createInstance(
+                `leavesInstance${treesPlaced}`
+              )
+
+              // Apply scaling FIRST
+              const scale = 0.8 + Math.random() * 0.4
+              trunkInstance.scaling = new BABYLON.Vector3(scale, scale, scale)
+              leavesInstance.scaling = new BABYLON.Vector3(scale, scale, scale)
+
+              // Calculate positions using ORIGINAL dimensions * scaling
+              const trunkScaledHeight = TRUNK_HEIGHT * trunkInstance.scaling.y
+              const leavesScaledHeight =
+                LEAVES_HEIGHT * leavesInstance.scaling.y
+
+              // Position leaves on top of trunk
+              leavesInstance.position = new BABYLON.Vector3(
+                x,
+                height + trunkScaledHeight / 2 + leavesScaledHeight / 2,
+                z
+              )
+
+              // Apply rotation AFTER positioning
+              const rotation = Math.random() * Math.PI * 2
+              trunkInstance.rotation.y = rotation
+              leavesInstance.rotation.y = rotation
+
+              treesPlaced++
+            }
+          }
+        }
+
+        addRocks() {
+          const {
+            ROCK_COUNT,
+            MIN_SCALE,
+            MAX_SCALE,
+            ROCK_NOISE_SCALE,
+            ROCK_DENSITY_THRESHOLD,
+            MIXED_AREA_THRESHOLD,
+          } = NaturalLandscape.ROCK_CONFIG
+          const { SIZE, HEIGHT_SCALE, NOISE_SCALE } =
+            NaturalLandscape.TERRAIN_CONFIG
+
+          const rockMaterial = new BABYLON.StandardMaterial(
+            'rockMat',
+            this.scene
+          )
+          rockMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.6, 0.6)
+
+          const rockTemplate = BABYLON.MeshBuilder.CreatePolyhedron(
+            'rock',
+            {
+              type: 2,
+              size: 1,
+            },
+            this.scene
+          )
+          rockTemplate.material = rockMaterial
+
+          let rocksPlaced = 0
+          while (rocksPlaced < ROCK_COUNT) {
+            const x = Math.random() * SIZE - SIZE / 2
+            const z = Math.random() * SIZE - SIZE / 2
+
+            // Calculate rock density and tree-only zone density
+            const rockDensity =
+              (this.generateNoise(x * ROCK_NOISE_SCALE, z * ROCK_NOISE_SCALE) +
+                1) /
+              2
+            const mixedDensity =
+              (this.generateNoise(x * 0.0025, z * 0.0025) + 1) / 2
+            const treeOnlyDensity =
+              (this.generateNoise(
+                x * NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_NOISE_SCALE,
+                z * NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_NOISE_SCALE
+              ) +
+                1) /
+              2
+
+            // Get terrain height
+            const nx = x * NOISE_SCALE
+            const nz = z * NOISE_SCALE
+            const height =
+              this.generateNoise(nx, nz) * HEIGHT_SCALE +
+              this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2) +
+              this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+            // Place rocks only if not in a tree-only zone
+            if (
+              treeOnlyDensity <
+                NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_THRESHOLD &&
+              (rockDensity > ROCK_DENSITY_THRESHOLD ||
+                (mixedDensity > MIXED_AREA_THRESHOLD && Math.random() > 0.7)) &&
+              height > HEIGHT_SCALE * 0.15
+            ) {
+              const instance = rockTemplate.createInstance('rock' + rocksPlaced)
+              instance.position = new BABYLON.Vector3(x, height, z)
+              instance.rotation = new BABYLON.Vector3(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+              )
+              instance.scaling = new BABYLON.Vector3(
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE),
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE),
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE)
+              )
+              rocksPlaced++
+            }
+          }
+        }
+
+        // Noise generation methods remain the same
+        generateNoise(x, y) {
+          const X = Math.floor(x) & 255
+          const Y = Math.floor(y) & 255
+          x -= Math.floor(x)
+          y -= Math.floor(y)
+
+          const u = this.fade(x)
+          const v = this.fade(y)
+
+          const A = this.p[X] + Y
+          const B = this.p[X + 1] + Y
+
+          return this.lerp(
+            v,
+            this.lerp(
+              u,
+              this.grad(this.p[A], x, y),
+              this.grad(this.p[B], x - 1, y)
+            ),
+            this.lerp(
+              u,
+              this.grad(this.p[A + 1], x, y - 1),
+              this.grad(this.p[B + 1], x - 1, y - 1)
+            )
+          )
+        }
+
+        fade(t) {
+          return t * t * t * (t * (t * 6 - 15) + 10)
+        }
+        lerp(t, a, b) {
+          return a + t * (b - a)
+        }
+        grad(hash, x, y) {
+          const h = hash & 15
+          const grad = 1 + (h & 7)
+          return (h & 8 ? -grad : grad) * x + (h & 4 ? -grad : grad) * y
+        }
+
+        animate() {
+          this.engine.runRenderLoop(() => {
+            this.scene.render()
+          })
+        }
+      }
+
+      // Initialize the scene
+      window.addEventListener('DOMContentLoaded', () => {
+        const loadingScreen = document.getElementById('loadingScreen')
+        const landscape = new NaturalLandscape('renderCanvas')
+
+        landscape.createScene()
+
+        landscape.scene.executeWhenReady(() => {
+          loadingScreen.style.display = 'none'
+          landscape.animate()
+        })
+
+        window.addEventListener('resize', () => {
+          landscape.engine.resize()
+        })
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            landscape.engine.stopRenderLoop()
+          } else {
+            landscape.animate()
+          }
+        })
+
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => {
+            landscape.engine.resize()
+          }, 200)
+        })
+
+        landscape.canvas.addEventListener(
+          'touchmove',
+          (e) => {
+            e.preventDefault()
+          },
+          { passive: false }
+        )
+      })
+    </script>
+  </body>
+</html>
