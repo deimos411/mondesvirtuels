@@ -78,7 +78,7 @@
   </head>
   <body>
     <canvas id="renderCanvas"></canvas>
-    <div class="controls">
+    <div class="controls2">
       <h2>Camera Controls</h2>
       <p>Left Click + Drag: Rotate camera</p>
       <p>Right Click + Drag: Pan camera</p>
@@ -87,7 +87,11 @@
     </div>
     <div id="loadingScreen" class="loading">Loading Scene...</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs@6.32.1/babylon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@6.32.1/babylon.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@6.32.1/babylonjs.materials.min.js"></script>
+
     <script>
       class NaturalLandscape {
         static TERRAIN_CONFIG = {
@@ -104,6 +108,7 @@
             id: 0,
             lightIntensity: 0.7,
             lightDirection: new BABYLON.Vector3(0, 1, 0),
+            lightColor: new BABYLON.Color3(1, 1, 1),
             dirLightColorIntensity: 1.5,
             dirLightDirection: new BABYLON.Vector3(0, 1, 0),
             dirLightColor: new BABYLON.Color3(0, 0, 0.3), // light blue
@@ -117,15 +122,26 @@
             ],
             treeDensity: 1.0, // Full foliage
             fogDensity: 0.00002, // Light spring mist
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 0.4, // Very clear sky
+              luminance: 0.1, // Bright
+              rayleigh: 0.5, // Deep blue
+              mieCoefficient: 0.003,
+              mieDirectionalG: 0.8,
+              inclination: 0.65, // Highest sun
+              azimuth: 0.25,
+            },
           },
           SUMMER: {
             id: 1,
-            lightIntensity: 0.9,
+            lightIntensity: 1.2,
             lightDirection: new BABYLON.Vector3(0, 1, 0),
+            lightColor: new BABYLON.Color3(1, 1, 1),
             dirLightColorIntensity: 1.5,
             dirLightDirection: new BABYLON.Vector3(0, 1, 0),
             dirLightColor: new BABYLON.Color3(0, 0.3, 0), // light green
-            groundColor: new BABYLON.Color3(0.5, 0.6, 0.3), // Warm summer green
+            groundColor: new BABYLON.Color3(0.59, 0.6, 0.3), // Warm summer green
             treeColors: [
               new BABYLON.Color3(0.1, 0.6, 0.1),
               new BABYLON.Color3(0.3, 0.7, 0.3),
@@ -135,29 +151,52 @@
             ],
             treeDensity: 1.0,
             fogDensity: 0, // Clear summer air
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 1.9, // Very clear sky
+              luminance: 0.001, // Bright
+              rayleigh: 0.16, // Deep blue
+              mieCoefficient: 0.005,
+              mieDirectionalG: 0.98,
+              inclination: 0.6, // Highest sun
+              azimuth: 0.25,
+            },
           },
           AUTUMN: {
             id: 2,
             lightIntensity: 1,
             lightDirection: new BABYLON.Vector3(-0.3, 0.5, 0),
+            lightColor: new BABYLON.Color3(1, 0.87, 0.48),
             dirLightColorIntensity: 5,
             dirLightDirection: new BABYLON.Vector3(0, 1, 0),
-            dirLightColor: new BABYLON.Color3(1, 0, 0), // yellow orange
+            dirLightColor: new BABYLON.Color3(0.19, 0.15, 0.1), // yellow orange
             groundColor: new BABYLON.Color3(0.6, 0.5, 0.2), // Autumnal brown
             treeColors: [
               new BABYLON.Color3(0.8, 0.4, 0.1), // Orange
               new BABYLON.Color3(0.9, 0.3, 0.1), // Red
               new BABYLON.Color3(0.8, 0.6, 0.1), // Yellow
-              new BABYLON.Color3(0.7, 0.2, 0.1), // Dark red
+              //new BABYLON.Color3(0.7, 0.2, 0.1), // Dark red
+              new BABYLON.Color3(0.18, 0.23, 0.13), // Dark green
               new BABYLON.Color3(0.6, 0.4, 0.1), // Brown
             ],
             treeDensity: 0.8, // Some leaves fallen
-            fogDensity: 0.0003, // Autumn mist
+            fogDensity: 0.00045, // Autumn mist
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 0.9, // Very clear sky
+              luminance: 0.001, // Bright
+              rayleigh: 0.6, // Deep blue
+              mieCoefficient: 0.003,
+              mieDirectionalG: 0.8,
+              inclination: 0.52, // Highest sun
+              azimuth: 0.25,
+            },
           },
           WINTER: {
             id: 3,
             lightIntensity: 1.2,
             lightDirection: new BABYLON.Vector3(0.3, 0.8, 0.3),
+            lightColor: new BABYLON.Color3(1, 1, 1),
             dirLightColorIntensity: 1.5,
             dirLightDirection: new BABYLON.Vector3(0, 1, 0),
             dirLightColor: new BABYLON.Color3(0, 0, 0.3), // light blue
@@ -167,12 +206,21 @@
               new BABYLON.Color3(0.1, 0.3, 0.1),
               new BABYLON.Color3(0.2, 0.3, 0.1),
               new BABYLON.Color3(0.1, 0.2, 0.1),
-              //new BABYLON.Color3(0.2, 0.3, 0.2),
               new BABYLON.Color3(1, 1, 1),
             ],
 
             treeDensity: 0.6, // Bare trees
             fogDensity: 0.0002, // Winter fog
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 3, // Most hazy
+              luminance: 0.7, // Darker
+              rayleigh: 5.0, // More scattered light (grayish)
+              mieCoefficient: 0.015, // More particle scattering
+              mieDirectionalG: 0.6,
+              inclination: 0.4, // Lowest sun
+              azimuth: 0.25,
+            },
           },
         }
 
@@ -215,6 +263,49 @@
           this.light = null
           this.dirLight = null
           this.terrainMaterial = null
+          this.skyMaterial = null
+          this.skybox = null
+
+          this.idleCamera = new BABYLON.ArcRotateCamera(
+            'idleCamera',
+            0, // alpha (horizontal rotation)
+            Math.PI / 2.2, // beta (vertical rotation, lowered to 45 degrees)
+            1200, // radius
+            BABYLON.Vector3.Zero(), // target (center of the scene)
+            this.scene
+          )
+
+          this.idleCamera.lowerRadiusLimit = 1200 // Fixed radius
+          this.idleCamera.upperRadiusLimit = 1200 // Fixed radius
+          this.idleCamera.attachControl(this.canvas, false) // Disable controls for idle camera
+
+          // Store the active camera
+          this.activeCamera = this.camera
+
+          // Track user activity
+          this.lastActivityTime = Date.now()
+          this.idleTimeout = 3000 // 30 seconds
+          this.isIdle = false
+
+          // Add event listeners for user activity
+          this.canvas.addEventListener(
+            'mousemove',
+            this.resetIdleTimer.bind(this)
+          )
+          this.canvas.addEventListener(
+            'touchstart',
+            this.resetIdleTimer.bind(this)
+          )
+          this.canvas.addEventListener(
+            'keydown',
+            this.resetIdleTimer.bind(this)
+          )
+
+          // Start the idle check loop
+          this.checkIdle()
+
+          // Add animation to the idle camera
+          this.animateIdleCamera()
 
           // Initialize permutation table for noise generation
           this.p = new Array(512)
@@ -226,45 +317,45 @@
           }
         }
 
-        setSeason(season) {
-          console.log('setSeason : ' + JSON.stringify(season))
-          this.currentSeason = season
-          this.updateSeasonalEffects()
+        resetIdleTimer() {
+          this.lastActivityTime = Date.now()
+          if (this.isIdle) {
+            this.switchToMainCamera()
+          }
         }
 
-        updateSeasonalEffects() {
-          if (!this.light || !this.terrainMaterial) {
-            console.warn(
-              'Scene not fully initialized. Call createScene() first.'
-            )
-            return
+        checkIdle() {
+          const now = Date.now()
+          if (now - this.lastActivityTime > this.idleTimeout && !this.isIdle) {
+            this.switchToIdleCamera()
           }
+          requestAnimationFrame(this.checkIdle.bind(this))
+        }
 
-          console.log('update lighting')
-          // Update lighting
-          this.light.intensity = this.currentSeason.lightIntensity
-          this.light.direction = this.currentSeason.lightDirection
+        switchToIdleCamera() {
+          console.log('switch to idle camera')
+          this.isIdle = true
+          this.activeCamera = this.idleCamera
+          this.scene.activeCamera = this.idleCamera
+        }
 
-          this.dirLight.intensity = this.currentSeason.dirLightColorIntensity
-          this.dirLight.direction = this.currentSeason.dirLightDirection
-          this.dirLight.diffuse = this.currentSeason.dirLightColor
+        switchToMainCamera() {
+          this.isIdle = false
+          this.activeCamera = this.camera
+          this.scene.activeCamera = this.camera
+        }
 
-          // Update ground material
-          this.terrainMaterial.diffuseColor = this.currentSeason.groundColor
-          console.log(
-            'this.currentSeason.groundColor :' + this.currentSeason.groundColor
-          )
-          console.log(
-            ' this.terrainMaterial.diffuseColor :' +
-              this.terrainMaterial.diffuseColor
-          )
+        animateIdleCamera() {
+          let angle = 0
+          const speed = 0.001 // Adjust speed as needed
 
-          // Update fog
-          this.scene.fogDensity = this.currentSeason.fogDensity
-          this.scene.fogColor = this.currentSeason.groundColor
-
-          // Update trees
-          this.updateTrees()
+          this.scene.registerBeforeRender(() => {
+            if (this.isIdle) {
+              angle += speed
+              this.idleCamera.alpha = angle // Rotate around the center
+              this.idleCamera.beta = Math.PI / 2.2
+            }
+          })
         }
 
         createScene() {
@@ -291,6 +382,7 @@
             this.scene
           )
           this.light.intensity = this.currentSeason.lightIntensity
+          this.light.diffuse = this.currentSeason.lightColor
 
           this.dirLight = new BABYLON.DirectionalLight(
             'dirLight',
@@ -308,11 +400,17 @@
           // Enable fog
           this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP
           this.scene.fogDensity = this.currentSeason.fogDensity
-          this.scene.fogColor = this.currentSeason.groundColor
+          this.scene.fogColor = this.currentSeason.fogColor
 
           this.createTerrain()
           this.addTrees()
           this.addRocks()
+
+          // Add sky
+          this.createSky()
+
+          // Assuming you have a Babylon.js scene instance
+          //this.scene.debugLayer.show()
 
           return this.scene
         }
@@ -639,6 +737,124 @@
           })
         }
 
+        createSky() {
+          // Create the skybox
+          this.skybox = BABYLON.MeshBuilder.CreateBox(
+            'skyBox',
+            { size: 10000.0 },
+            this.scene
+          )
+
+          // Create and configure sky material
+          this.skyMaterial = new BABYLON.SkyMaterial('skyMaterial', this.scene)
+          this.skyMaterial.backFaceCulling = false
+
+          // Apply material to skybox
+          this.skybox.material = this.skyMaterial
+
+          // Ensure skybox follows the camera
+          this.skybox.infiniteDistance = true
+
+          // Make sure the skybox is rendered first
+          this.skybox.renderingGroupId = 0
+
+          // Disable skybox from being pickable
+          this.skybox.isPickable = false
+
+          // Initialize with current season's sky configuration
+          this.updateSkyConfig(this.currentSeason.skyConfig)
+
+          // Position the skybox at the scene origin
+          this.skybox.position = BABYLON.Vector3.Zero()
+        }
+
+        setSeason(season) {
+          console.log('setSeason : ' + JSON.stringify(season))
+          this.currentSeason = season
+          this.updateSeasonalEffects()
+        }
+
+        updateSeasonalEffects() {
+          if (!this.light || !this.terrainMaterial) {
+            console.warn(
+              'Scene not fully initialized. Call createScene() first.'
+            )
+            return
+          }
+
+          console.log('update lighting')
+          // Update lighting
+          this.light.intensity = this.currentSeason.lightIntensity
+          this.light.direction = this.currentSeason.lightDirection
+          this.light.diffuse = this.currentSeason.lightColor
+
+          this.dirLight.intensity = this.currentSeason.dirLightColorIntensity
+          this.dirLight.direction = this.currentSeason.dirLightDirection
+          this.dirLight.diffuse = this.currentSeason.dirLightColor
+
+          // Update ground material
+          this.terrainMaterial.diffuseColor = this.currentSeason.groundColor
+          console.log(
+            'this.currentSeason.groundColor :' + this.currentSeason.groundColor
+          )
+          console.log(
+            ' this.terrainMaterial.diffuseColor :' +
+              this.terrainMaterial.diffuseColor
+          )
+
+          // Update fog
+          this.scene.fogDensity = this.currentSeason.fogDensity
+          this.scene.fogColor = this.currentSeason.fogColor
+
+          // Update sky
+          this.updateSkyConfig(this.currentSeason.skyConfig)
+
+          // Update trees
+          this.updateTrees()
+        }
+
+        // Get current season value
+        getCurrentSeason() {
+          return this.currentSeason
+        }
+
+        updateSkyConfig(config) {
+          if (!this.skyMaterial) return
+
+          // Basic parameters
+          this.skyMaterial.turbidity = config.turbidity
+          this.skyMaterial.luminance = config.luminance
+          this.skyMaterial.rayleigh = config.rayleigh
+          this.skyMaterial.mieCoefficient = config.mieCoefficient
+          this.skyMaterial.mieDirectionalG = config.mieDirectionalG
+
+          // Set sun position
+          this.skyMaterial.useSunPosition = true
+          const distance = 10000
+          const theta = Math.PI * (config.inclination - 0.5)
+          const phi = 2 * Math.PI * (config.azimuth - 0.5)
+
+          const sunPosition = new BABYLON.Vector3(
+            distance * Math.cos(phi),
+            distance * Math.sin(theta),
+            distance * Math.sin(phi)
+          )
+          this.skyMaterial.sunPosition = sunPosition
+
+          // Force the sky material to update
+          //this.skyMaterial.updateShaderUniforms()
+        }
+
+        // Get all available seasons
+        getAvailableSeasons() {
+          return Object.keys(NaturalLandscape.SEASON_CONFIG).map(
+            (seasonKey) => ({
+              name: seasonKey,
+              config: NaturalLandscape.SEASON_CONFIG[seasonKey],
+            })
+          )
+        }
+
         // Noise generation methods remain the same
         generateNoise(x, y) {
           const X = Math.floor(x) & 255
@@ -692,7 +908,17 @@
         const landscape = new NaturalLandscape('renderCanvas')
 
         landscape.createScene()
-        landscape.setSeason(NaturalLandscape.SEASON_CONFIG.WINTER)
+
+        // Get current season
+        console.log('Current season:', landscape.getCurrentSeason())
+
+        // Get all available seasons
+        const seasons = landscape.getAvailableSeasons()
+        console.log('Available seasons:', seasons)
+
+        landscape.setSeason(NaturalLandscape.SEASON_CONFIG.SPRING)
+
+        cycleThroughSeasons()
 
         landscape.scene.executeWhenReady(() => {
           loadingScreen.style.display = 'none'
@@ -724,6 +950,19 @@
           },
           { passive: false }
         )
+
+        // You can also create a simple season cycling function
+        function cycleThroughSeasons() {
+          const seasons = landscape.getAvailableSeasons()
+          let currentIndex = 0
+
+          setInterval(() => {
+            currentIndex = (currentIndex + 1) % seasons.length
+            landscape.setSeason(
+              NaturalLandscape.SEASON_CONFIG[seasons[currentIndex].name]
+            )
+          }, 5000) // Change every 5 seconds
+        }
       })
     </script>
   </body>
