@@ -333,7 +333,6 @@
         }
 
         switchToIdleCamera() {
-          console.log('switch to idle camera')
           this.isIdle = true
           this.activeCamera = this.idleCamera
           this.scene.activeCamera = this.idleCamera
@@ -391,11 +390,6 @@
           )
           this.dirLight.intensity = this.currentSeason.dirLightColorIntensity
           this.dirLight.diffuse = this.currentSeason.dirLightColor
-
-          console.log(
-            'this.currentSeason : ' + JSON.stringify(this.currentSeason)
-          )
-          console.log('this.dirLight.diffuse : ' + this.dirLight.diffuse)
 
           // Enable fog
           this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP
@@ -722,7 +716,6 @@
               this.scene
             )
 
-            console.log('index : ' + index)
             material.diffuseColor = this.currentSeason.treeColors[colorIndex]
             leaves.material = material
 
@@ -769,7 +762,6 @@
         }
 
         setSeason(season) {
-          console.log('setSeason : ' + JSON.stringify(season))
           this.currentSeason = season
           this.updateSeasonalEffects()
         }
@@ -782,7 +774,6 @@
             return
           }
 
-          console.log('update lighting')
           // Update lighting
           this.light.intensity = this.currentSeason.lightIntensity
           this.light.direction = this.currentSeason.lightDirection
@@ -794,13 +785,6 @@
 
           // Update ground material
           this.terrainMaterial.diffuseColor = this.currentSeason.groundColor
-          console.log(
-            'this.currentSeason.groundColor :' + this.currentSeason.groundColor
-          )
-          console.log(
-            ' this.terrainMaterial.diffuseColor :' +
-              this.terrainMaterial.diffuseColor
-          )
 
           // Update fog
           this.scene.fogDensity = this.currentSeason.fogDensity
@@ -910,11 +894,9 @@
         landscape.createScene()
 
         // Get current season
-        console.log('Current season:', landscape.getCurrentSeason())
 
         // Get all available seasons
         const seasons = landscape.getAvailableSeasons()
-        console.log('Available seasons:', seasons)
 
         landscape.setSeason(NaturalLandscape.SEASON_CONFIG.SPRING)
 
