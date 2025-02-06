@@ -109,10 +109,10 @@
             lightIntensity: 0.7,
             lightDirection: new BABYLON.Vector3(0, 1, 0),
             lightColor: new BABYLON.Color3(1, 1, 1),
-            dirLightColorIntensity: 1.5,
-            dirLightDirection: new BABYLON.Vector3(0, 1, 0),
-            dirLightColor: new BABYLON.Color3(0, 0, 0.3), // light blue
-            groundColor: new BABYLON.Color3(0.4, 0.7, 0.3), // Bright spring green
+            dirLightColorIntensity: 0.6,
+            dirLightDirection: new BABYLON.Vector3(0, -1, 0),
+            dirLightColor: new BABYLON.Color3(0.65, 0.78, 0.58), // light blue
+            groundColor: new BABYLON.Color3(0.52, 0.71, 0.46), // Bright spring green
             treeColors: [
               new BABYLON.Color3(0.3, 0.8, 0.2), // Fresh spring green
               new BABYLON.Color3(0.4, 0.8, 0.3),
@@ -122,7 +122,7 @@
             ],
             treeDensity: 1.0, // Full foliage
             fogDensity: 0.00002, // Light spring mist
-            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            fogColor: new BABYLON.Color3(0.52, 0.71, 0.46), // pure white
             skyConfig: {
               turbidity: 0.4, // Very clear sky
               luminance: 0.1, // Bright
@@ -135,31 +135,31 @@
           },
           SUMMER: {
             id: 1,
-            lightIntensity: 1.2,
-            lightDirection: new BABYLON.Vector3(0, 1, 0),
-            lightColor: new BABYLON.Color3(1, 1, 1),
-            dirLightColorIntensity: 1.5,
-            dirLightDirection: new BABYLON.Vector3(0, 1, 0),
-            dirLightColor: new BABYLON.Color3(0, 0.3, 0), // light green
-            groundColor: new BABYLON.Color3(0.59, 0.6, 0.3), // Warm summer green
+            lightIntensity: 1.3,
+            lightDirection: new BABYLON.Vector3(1, 1, 0),
+            lightColor: new BABYLON.Color3(0.88, 0.76, 0.69),
+            dirLightColorIntensity: 0.6,
+            dirLightDirection: new BABYLON.Vector3(0, -1, 0),
+            dirLightColor: new BABYLON.Color3(0.31, 0.63, 0.43), // light blue
+            groundColor: new BABYLON.Color3(0.59, 0.6, 0.3), // Warm summer brown
             treeColors: [
               new BABYLON.Color3(0.1, 0.6, 0.1),
-              new BABYLON.Color3(0.3, 0.7, 0.3),
-              new BABYLON.Color3(0.5, 0.8, 0.2),
+              new BABYLON.Color3(0.8, 0.83, 0.14),
+              new BABYLON.Color3(0.07, 0.47, 0.09),
               new BABYLON.Color3(0.2, 0.6, 0.2),
               new BABYLON.Color3(0.4, 0.7, 0.2),
             ],
             treeDensity: 1.0,
-            fogDensity: 0, // Clear summer air
-            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            fogDensity: 0.0001, // Clear summer air
+            fogColor: new BABYLON.Color3(0.62, 0.79, 0.94), // pure white
             skyConfig: {
               turbidity: 1.9, // Very clear sky
               luminance: 0.001, // Bright
-              rayleigh: 0.16, // Deep blue
+              rayleigh: 0.13, // Deep blue
               mieCoefficient: 0.005,
               mieDirectionalG: 0.98,
-              inclination: 0.6, // Highest sun
-              azimuth: 0.25,
+              inclination: 0.59, // Highest sun
+              azimuth: 0.55,
             },
           },
           AUTUMN: {
@@ -248,7 +248,7 @@
 
         static CAMERA_CONFIG = {
           MIN_RADIUS: 500, // Minimum camera distance
-          RADIUS: 1000, // Camera distance
+          RADIUS: 1200, // Camera distance
           MAX_RADIUS: 3000, // Maximum camera distance
         }
 
@@ -268,7 +268,7 @@
 
           this.idleCamera = new BABYLON.ArcRotateCamera(
             'idleCamera',
-            0, // alpha (horizontal rotation)
+            Math.PI + 0.4, // alpha (horizontal rotation)
             Math.PI / 2.2, // beta (vertical rotation, lowered to 45 degrees)
             1200, // radius
             BABYLON.Vector3.Zero(), // target (center of the scene)
@@ -284,7 +284,7 @@
 
           // Track user activity
           this.lastActivityTime = Date.now()
-          this.idleTimeout = 10000 // 30 seconds
+          this.idleTimeout = 10000 // 10 seconds
           this.isIdle = false
 
           // Add event listeners for user activity
@@ -300,6 +300,33 @@
             'keydown',
             this.resetIdleTimer.bind(this)
           )
+
+          // Track mouse interaction state
+          this.isMouseDown = false
+
+          // Add more comprehensive event listeners
+          this.canvas.addEventListener('pointerdown', (event) => {
+            // Check if left mouse button is pressed
+            console.log('pointerdown')
+            if (event.button === 0) {
+              this.isMouseDown = true
+              this.resetIdleTimer()
+            }
+          })
+
+          this.canvas.addEventListener('pointerup', (event) => {
+            // Reset mouse down state when button is released
+            if (event.button === 0) {
+              this.isMouseDown = false
+            }
+          })
+
+          this.canvas.addEventListener('pointermove', (event) => {
+            // Only reset timer if left mouse button is held down
+            if (this.isMouseDown) {
+              this.resetIdleTimer()
+            }
+          })
 
           // Start the idle check loop
           this.checkIdle()
@@ -318,6 +345,7 @@
         }
 
         resetIdleTimer() {
+          console.log('reset')
           this.lastActivityTime = Date.now()
           if (this.isIdle) {
             this.switchToMainCamera()
@@ -361,8 +389,8 @@
           // Camera setup
           this.camera = new BABYLON.ArcRotateCamera(
             'camera',
-            0,
-            Math.PI / 3,
+            Math.PI + 0.4,
+            Math.PI / 2.2,
             NaturalLandscape.CAMERA_CONFIG.RADIUS,
             BABYLON.Vector3.Zero(),
             this.scene
@@ -898,7 +926,7 @@
         // Get all available seasons
         const seasons = landscape.getAvailableSeasons()
 
-        landscape.setSeason(NaturalLandscape.SEASON_CONFIG.SPRING)
+        landscape.setSeason(NaturalLandscape.SEASON_CONFIG.SUMMER)
 
         cycleThroughSeasons()
 
