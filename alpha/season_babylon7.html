@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Head section remains the same -->
+  <head>
+    <!-- Previous head content remains exactly the same -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Natural Landscape - BabylonJS 7.48</title>
+    <style>
+      /* Previous styles remain exactly the same */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      .controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+        max-width: 300px;
+      }
+
+      .controls h2 {
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .controls p {
+        font-size: 14px;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      /* Add this new style for the FPS counter */
+      .fps-counter {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-size: 16px;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 8px;
+      }
+
+      @media (max-width: 768px) {
+        .controls {
+          top: auto;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 90%;
+          max-width: none;
+        }
+      }
+
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 2000;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="renderCanvas"></canvas>
+    <div class="controls2">
+      <h2>Camera Controls</h2>
+      <p>Left Click + Drag: Rotate camera</p>
+      <p>Right Click + Drag: Pan camera</p>
+      <p>Mouse Wheel: Zoom in/out</p>
+      <p>Touch: One finger to rotate, two fingers to zoom</p>
+    </div>
+    <div id="loadingScreen" class="loading">Loading Scene...</div>
+    <!-- Add this new div for the FPS counter -->
+    <div id="fpsCounter" class="fps-counter">FPS: 0</div>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs@7.48.1/babylon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@7.48.1/babylon.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@7.48.1/babylonjs.materials.min.js"></script>
+
+    <script>
+      class NaturalLandscape {
+        static TERRAIN_CONFIG = {
+          SIZE: 3000,
+          SUBDIVISIONS: 1000,
+          HEIGHT_SCALE: 40,
+          NOISE_SCALE: 0.002,
+          COLOR: new BABYLON.Color3(0.5, 0.6, 0.3), // light green
+          DIFFUSE_COLOR: new BABYLON.Color3(0, 0, 0),
+        }
+
+        static SEASON_CONFIG = {
+          SPRING: {
+            id: 0,
+            lightIntensity: 0.7,
+            lightDirection: new BABYLON.Vector3(0, 1, 0),
+            lightColor: new BABYLON.Color3(1, 1, 1),
+            dirLightColorIntensity: 0.6,
+            dirLightDirection: new BABYLON.Vector3(0, -1, 0),
+            dirLightColor: new BABYLON.Color3(0.65, 0.78, 0.58), // light blue
+            groundColor: new BABYLON.Color3(0.52, 0.71, 0.46), // Bright spring green
+            treeColors: [
+              new BABYLON.Color3(0.3, 0.8, 0.2), // Fresh spring green
+              new BABYLON.Color3(0.4, 0.8, 0.3),
+              new BABYLON.Color3(0.5, 0.8, 0.2),
+              new BABYLON.Color3(0.6, 0.9, 0.3),
+              new BABYLON.Color3(0.7, 0.9, 0.2),
+            ],
+            treeDensity: 1.0, // Full foliage
+            fogDensity: 0.00002, // Light spring mist
+            fogColor: new BABYLON.Color3(0.52, 0.71, 0.46), // pure white
+            skyConfig: {
+              turbidity: 0.4, // Very clear sky
+              luminance: 0.1, // Bright
+              rayleigh: 0.5, // Deep blue
+              mieCoefficient: 0.003,
+              mieDirectionalG: 0.8,
+              inclination: 0.65, // Highest sun
+              azimuth: 0.25,
+            },
+          },
+          SUMMER: {
+            id: 1,
+            lightIntensity: 1.3,
+            lightDirection: new BABYLON.Vector3(1, 1, 0),
+            lightColor: new BABYLON.Color3(0.88, 0.76, 0.69),
+            dirLightColorIntensity: 0.6,
+            dirLightDirection: new BABYLON.Vector3(0, -1, 0),
+            dirLightColor: new BABYLON.Color3(0.31, 0.63, 0.43), // light blue
+            groundColor: new BABYLON.Color3(0.59, 0.6, 0.3), // Warm summer brown
+            treeColors: [
+              new BABYLON.Color3(0.1, 0.6, 0.1),
+              new BABYLON.Color3(0.8, 0.83, 0.14),
+              new BABYLON.Color3(0.07, 0.47, 0.09),
+              new BABYLON.Color3(0.2, 0.6, 0.2),
+              new BABYLON.Color3(0.4, 0.7, 0.2),
+            ],
+            treeDensity: 1.0,
+            fogDensity: 0.0001, // Clear summer air
+            fogColor: new BABYLON.Color3(0.62, 0.79, 0.94), // pure white
+            skyConfig: {
+              turbidity: 1.9, // Very clear sky
+              luminance: 0.001, // Bright
+              rayleigh: 0.13, // Deep blue
+              mieCoefficient: 0.005,
+              mieDirectionalG: 0.98,
+              inclination: 0.59, // Highest sun
+              azimuth: 0.55,
+            },
+          },
+          AUTUMN: {
+            id: 2,
+            lightIntensity: 1,
+            lightDirection: new BABYLON.Vector3(-0.3, 0.5, 0),
+            lightColor: new BABYLON.Color3(1, 0.87, 0.48),
+            dirLightColorIntensity: 5,
+            dirLightDirection: new BABYLON.Vector3(0, 1, 0),
+            dirLightColor: new BABYLON.Color3(0.19, 0.15, 0.1), // yellow orange
+            groundColor: new BABYLON.Color3(0.6, 0.5, 0.2), // Autumnal brown
+            treeColors: [
+              new BABYLON.Color3(0.8, 0.4, 0.1), // Orange
+              new BABYLON.Color3(0.9, 0.3, 0.1), // Red
+              new BABYLON.Color3(0.8, 0.6, 0.1), // Yellow
+              //new BABYLON.Color3(0.7, 0.2, 0.1), // Dark red
+              new BABYLON.Color3(0.18, 0.23, 0.13), // Dark green
+              new BABYLON.Color3(0.6, 0.4, 0.1), // Brown
+            ],
+            treeDensity: 0.8, // Some leaves fallen
+            fogDensity: 0.00045, // Autumn mist
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 0.9, // Very clear sky
+              luminance: 0.001, // Bright
+              rayleigh: 0.6, // Deep blue
+              mieCoefficient: 0.003,
+              mieDirectionalG: 0.8,
+              inclination: 0.52, // Highest sun
+              azimuth: 0.25,
+            },
+          },
+          WINTER: {
+            id: 3,
+            lightIntensity: 1.2,
+            lightDirection: new BABYLON.Vector3(0.3, 0.8, 0.3),
+            lightColor: new BABYLON.Color3(1, 1, 1),
+            dirLightColorIntensity: 1.5,
+            dirLightDirection: new BABYLON.Vector3(0, 1, 0),
+            dirLightColor: new BABYLON.Color3(0, 0, 0.3), // light blue
+            groundColor: new BABYLON.Color3(0.9, 0.9, 0.9), // Snow white
+            treeColors: [
+              new BABYLON.Color3(0.2, 0.4, 0.1), // Dark evergreen
+              new BABYLON.Color3(0.1, 0.3, 0.1),
+              new BABYLON.Color3(0.2, 0.3, 0.1),
+              new BABYLON.Color3(0.1, 0.2, 0.1),
+              new BABYLON.Color3(1, 1, 1),
+            ],
+
+            treeDensity: 0.6, // Bare trees
+            fogDensity: 0.0002, // Winter fog
+            fogColor: new BABYLON.Color3(1, 1, 1), // pure white
+            skyConfig: {
+              turbidity: 3, // Most hazy
+              luminance: 0.7, // Darker
+              rayleigh: 5.0, // More scattered light (grayish)
+              mieCoefficient: 0.015, // More particle scattering
+              mieDirectionalG: 0.6,
+              inclination: 0.4, // Lowest sun
+              azimuth: 0.25,
+            },
+          },
+        }
+
+        static VEGETATION_CONFIG = {
+          TREE_COUNT: 7000,
+          TREE_HEIGHT: 10,
+          TREE_TRUNK_DIAMETER: 3,
+          TREE_TOP_HEIGHT: 40,
+          TREE_TOP_DIAMETER: 0,
+          TREE_BASE_DIAMETER: 15,
+          TREE_NOISE_SCALE: 0.003,
+          TREE_DENSITY_THRESHOLD: 0.6,
+          TREE_ONLY_NOISE_SCALE: 0.001, // Smaller scale for larger tree-only zones
+          TREE_ONLY_THRESHOLD: 0.7, // Higher threshold for exclusive tree zones
+        }
+
+        static ROCK_CONFIG = {
+          ROCK_COUNT: 4000,
+          MIN_SCALE: 10.5,
+          MAX_SCALE: 30,
+          ROCK_NOISE_SCALE: 0.005,
+          ROCK_DENSITY_THRESHOLD: 0.55,
+          MIXED_AREA_THRESHOLD: 0.4,
+        }
+
+        static CAMERA_CONFIG = {
+          MIN_RADIUS: 500, // Minimum camera distance
+          RADIUS: 1200, // Camera distance
+          MAX_RADIUS: 3000, // Maximum camera distance
+          IDLE_TIMEOUT: 10000, // 10 seconds
+        }
+
+        constructor(canvasId) {
+          this.canvas = document.getElementById(canvasId)
+          this.engine = new BABYLON.Engine(this.canvas, true)
+          this.scene = new BABYLON.Scene(this.engine)
+
+          this.currentSeason = NaturalLandscape.SEASON_CONFIG.SUMMER
+
+          // Initialize class properties
+          this.light = null
+          this.dirLight = null
+          this.terrainMaterial = null
+          this.skyMaterial = null
+          this.skybox = null
+          this.idleCamera = null
+          this.camera = null
+
+          // Store the active camera
+          this.activeCamera = this.camera
+
+          // Track user activity
+          this.lastActivityTime = Date.now()
+          this.idleTimeout = NaturalLandscape.CAMERA_CONFIG.IDLE_TIMEOUT // 10 seconds
+          this.isIdle = false
+
+          // Add event listeners for user activity
+          this.canvas.addEventListener(
+            'mousemove',
+            this.resetIdleTimer.bind(this)
+          )
+          this.canvas.addEventListener(
+            'touchstart',
+            this.resetIdleTimer.bind(this)
+          )
+          this.canvas.addEventListener(
+            'keydown',
+            this.resetIdleTimer.bind(this)
+          )
+
+          // Track mouse interaction state
+          this.isMouseDown = false
+
+          // Add more comprehensive event listeners
+          this.canvas.addEventListener('pointerdown', (event) => {
+            // Check if left mouse button is pressed
+            console.log('pointerdown')
+            if (event.button === 0) {
+              this.isMouseDown = true
+              this.resetIdleTimer()
+            }
+          })
+
+          this.canvas.addEventListener('pointerup', (event) => {
+            // Reset mouse down state when button is released
+            if (event.button === 0) {
+              this.isMouseDown = false
+            }
+          })
+
+          this.canvas.addEventListener('pointermove', (event) => {
+            // Only reset timer if left mouse button is held down
+            if (this.isMouseDown) {
+              this.resetIdleTimer()
+            }
+          })
+
+          // Start the idle check loop
+          this.checkIdle()
+
+          // Initialize permutation table for noise generation
+          this.p = new Array(512)
+          for (let i = 0; i < 256; i++) {
+            this.p[i] = Math.floor(Math.random() * 256)
+          }
+          for (let i = 0; i < 256; i++) {
+            this.p[256 + i] = this.p[i]
+          }
+        }
+
+        createScene() {
+          // Camera setup
+          this.camera = new BABYLON.ArcRotateCamera(
+            'camera',
+            Math.PI + 0.4,
+            Math.PI / 2.2,
+            NaturalLandscape.CAMERA_CONFIG.RADIUS,
+            BABYLON.Vector3.Zero(),
+            this.scene
+          )
+
+          this.camera.attachControl(this.canvas, true)
+          this.camera.lowerRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.MIN_RADIUS
+          this.camera.upperRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.MAX_RADIUS
+
+          // Idle camera setup
+          this.idleCamera = new BABYLON.ArcRotateCamera(
+            'idleCamera',
+            Math.PI + 0.4, // alpha (horizontal rotation)
+            Math.PI / 2.2, // beta (vertical rotation, lowered to 45 degrees)
+            NaturalLandscape.CAMERA_CONFIG.RADIUS, // radius
+            BABYLON.Vector3.Zero(), // target (center of the scene)
+            this.scene
+          )
+
+          this.idleCamera.lowerRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.RADIUS // Fixed radius
+          this.idleCamera.upperRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.RADIUS // Fixed radius
+          this.idleCamera.attachControl(this.canvas, false) // Disable controls for idle camera
+
+          // Lighting setup - store references
+          this.light = new BABYLON.HemisphericLight(
+            'light',
+            this.currentSeason.lightDirection,
+            this.scene
+          )
+          this.light.intensity = this.currentSeason.lightIntensity
+          this.light.diffuse = this.currentSeason.lightColor
+
+          this.dirLight = new BABYLON.DirectionalLight(
+            'dirLight',
+            this.currentSeason.dirLightDirection,
+            this.scene
+          )
+          this.dirLight.intensity = this.currentSeason.dirLightColorIntensity
+          this.dirLight.diffuse = this.currentSeason.dirLightColor
+
+          // Enable fog
+          this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP
+          this.scene.fogDensity = this.currentSeason.fogDensity
+          this.scene.fogColor = this.currentSeason.fogColor
+
+          this.createTerrain()
+          this.addTrees()
+          this.addRocks()
+
+          // Add sky
+          this.createSky()
+
+          // Assuming you have a Babylon.js scene instance
+          //this.scene.debugLayer.show()
+
+          this.scene.onBeforeRenderObservable.add(() => {
+            fpsCounter.textContent = this.engine.getFps().toFixed()
+          })
+
+          return this.scene
+        }
+
+        createTerrain() {
+          const {
+            SIZE,
+            SUBDIVISIONS,
+            HEIGHT_SCALE,
+            NOISE_SCALE,
+            COLOR,
+            DIFFUSE_COLOR,
+          } = NaturalLandscape.TERRAIN_CONFIG
+
+          const terrainMaterial = new BABYLON.StandardMaterial(
+            'terrainMat',
+            this.scene
+          )
+
+          this.terrainMaterial = terrainMaterial
+          this.terrainMaterial.diffuseColor = this.currentSeason.groundColor
+          this.terrainMaterial.specularColor =
+            NaturalLandscape.TERRAIN_CONFIG.DIFFUSE_COLOR
+
+          const ground = new BABYLON.Mesh('ground', this.scene)
+          const vertexData = new BABYLON.VertexData()
+          const positions = []
+          const indices = []
+          const uvs = []
+
+          // Generate mesh vertices
+          for (let z = 0; z <= SUBDIVISIONS; z++) {
+            for (let x = 0; x <= SUBDIVISIONS; x++) {
+              const xPos = (x / SUBDIVISIONS - 0.5) * SIZE
+              const zPos = (z / SUBDIVISIONS - 0.5) * SIZE
+
+              const nx = xPos * NOISE_SCALE
+              const nz = zPos * NOISE_SCALE
+              let height = this.generateNoise(nx, nz) * HEIGHT_SCALE
+              height += this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2)
+              height += this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+              positions.push(xPos, height, zPos)
+              uvs.push(x / SUBDIVISIONS, z / SUBDIVISIONS)
+            }
+          }
+
+          // Generate indices
+          for (let z = 0; z < SUBDIVISIONS; z++) {
+            for (let x = 0; x < SUBDIVISIONS; x++) {
+              const bottomLeft = z * (SUBDIVISIONS + 1) + x
+              const bottomRight = bottomLeft + 1
+              const topLeft = (z + 1) * (SUBDIVISIONS + 1) + x
+              const topRight = topLeft + 1
+
+              indices.push(bottomLeft, bottomRight, topRight)
+              indices.push(bottomLeft, topRight, topLeft)
+            }
+          }
+
+          const normals = []
+          BABYLON.VertexData.ComputeNormals(positions, indices, normals)
+
+          vertexData.positions = positions
+          vertexData.indices = indices
+          vertexData.normals = normals
+          vertexData.uvs = uvs
+          vertexData.applyToMesh(ground)
+
+          ground.material = terrainMaterial
+          ground.receiveShadows = true
+        }
+
+        addTrees() {
+          const {
+            TREE_COUNT,
+            TREE_HEIGHT,
+            TREE_TRUNK_DIAMETER,
+            TREE_TOP_HEIGHT,
+            TREE_TOP_DIAMETER,
+            TREE_BASE_DIAMETER,
+            TREE_NOISE_SCALE,
+            TREE_DENSITY_THRESHOLD,
+            TREE_ONLY_NOISE_SCALE,
+            TREE_ONLY_THRESHOLD,
+          } = NaturalLandscape.VEGETATION_CONFIG
+          const { SIZE, HEIGHT_SCALE, NOISE_SCALE } =
+            NaturalLandscape.TERRAIN_CONFIG
+
+          // Constants for vertical positioning
+          const TRUNK_HEIGHT = TREE_HEIGHT // Original trunk height
+          const LEAVES_HEIGHT = TREE_TOP_HEIGHT // Original leaves height
+
+          // Material for trunk (brown)
+          const trunkMaterial = new BABYLON.StandardMaterial(
+            'trunkMat',
+            this.scene
+          )
+          trunkMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.2, 0.1)
+
+          // Create 5 leaf materials (green to orange)
+          const leafMaterials = [
+            new BABYLON.StandardMaterial('leavesMat1', this.scene),
+            new BABYLON.StandardMaterial('leavesMat2', this.scene),
+            new BABYLON.StandardMaterial('leavesMat3', this.scene),
+            new BABYLON.StandardMaterial('leavesMat4', this.scene),
+            new BABYLON.StandardMaterial('leavesMat5', this.scene),
+          ]
+
+          // Define colors (green to orange gradient)
+          leafMaterials[0].diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.1) // Dark green
+          leafMaterials[1].diffuseColor = new BABYLON.Color3(0.3, 0.7, 0.3) // Medium green
+          leafMaterials[2].diffuseColor = new BABYLON.Color3(0.5, 0.8, 0.2) // Light green
+          leafMaterials[3].diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.1) // Yellow-green
+          leafMaterials[4].diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.1) // Orange
+
+          // Create 5 leaf templates (one per material)
+          const leafTemplates = []
+          for (let i = 0; i < 5; i++) {
+            const leaves = BABYLON.MeshBuilder.CreateCylinder(
+              `leavesTemplate${i}`,
+              {
+                height: LEAVES_HEIGHT,
+                diameter: TREE_BASE_DIAMETER,
+                diameterTop: TREE_TOP_DIAMETER,
+              },
+              this.scene
+            )
+            leaves.material = leafMaterials[i]
+            leaves.setEnabled(false) // Hide templates
+            leafTemplates.push(leaves)
+          }
+
+          // Trunk template with ORIGINAL dimensions
+          const trunkTemplate = BABYLON.MeshBuilder.CreateCylinder(
+            'trunkTemplate',
+            {
+              height: TRUNK_HEIGHT,
+              diameter: TREE_TRUNK_DIAMETER,
+            },
+            this.scene
+          )
+          trunkTemplate.material = trunkMaterial
+          trunkTemplate.setEnabled(false) // Hide template
+
+          let treesPlaced = 0
+          while (treesPlaced < TREE_COUNT) {
+            const x = Math.random() * SIZE - SIZE / 2
+            const z = Math.random() * SIZE - SIZE / 2
+
+            // Calculate tree density and tree-only zone density
+            const treeDensity =
+              (this.generateNoise(x * TREE_NOISE_SCALE, z * TREE_NOISE_SCALE) +
+                1) /
+              2
+            const treeOnlyDensity =
+              (this.generateNoise(
+                x * TREE_ONLY_NOISE_SCALE,
+                z * TREE_ONLY_NOISE_SCALE
+              ) +
+                1) /
+              2
+
+            // Get base terrain height
+            const nx = x * NOISE_SCALE
+            const nz = z * NOISE_SCALE
+            const height =
+              this.generateNoise(nx, nz) * HEIGHT_SCALE +
+              this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2) +
+              this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+            // Place tree if in a tree-only zone or high-density area
+            if (
+              (treeOnlyDensity > TREE_ONLY_THRESHOLD ||
+                treeDensity > TREE_DENSITY_THRESHOLD) &&
+              height > HEIGHT_SCALE * 0.1
+            ) {
+              // Create an instance of the trunk
+              const trunkInstance = trunkTemplate.createInstance(
+                `trunkInstance${treesPlaced}`
+              )
+              trunkInstance.position = new BABYLON.Vector3(x, height, z)
+
+              // Randomly select a leaf template (0-4)
+              const leafTemplate = leafTemplates[Math.floor(Math.random() * 5)]
+
+              // Create an instance of the leaves
+              const leavesInstance = leafTemplate.createInstance(
+                `leavesInstance${treesPlaced}`
+              )
+
+              // Apply scaling FIRST
+              const scale = 0.8 + Math.random() * 0.4
+              trunkInstance.scaling = new BABYLON.Vector3(scale, scale, scale)
+              leavesInstance.scaling = new BABYLON.Vector3(scale, scale, scale)
+
+              // Calculate positions using ORIGINAL dimensions * scaling
+              const trunkScaledHeight = TRUNK_HEIGHT * trunkInstance.scaling.y
+              const leavesScaledHeight =
+                LEAVES_HEIGHT * leavesInstance.scaling.y
+
+              // Position leaves on top of trunk
+              leavesInstance.position = new BABYLON.Vector3(
+                x,
+                height + trunkScaledHeight / 2 + leavesScaledHeight / 2,
+                z
+              )
+
+              // Apply rotation AFTER positioning
+              const rotation = Math.random() * Math.PI * 2
+              trunkInstance.rotation.y = rotation
+              leavesInstance.rotation.y = rotation
+
+              treesPlaced++
+            }
+          }
+        }
+
+        addRocks() {
+          const {
+            ROCK_COUNT,
+            MIN_SCALE,
+            MAX_SCALE,
+            ROCK_NOISE_SCALE,
+            ROCK_DENSITY_THRESHOLD,
+            MIXED_AREA_THRESHOLD,
+          } = NaturalLandscape.ROCK_CONFIG
+          const { SIZE, HEIGHT_SCALE, NOISE_SCALE } =
+            NaturalLandscape.TERRAIN_CONFIG
+
+          const rockMaterial = new BABYLON.StandardMaterial(
+            'rockMat',
+            this.scene
+          )
+          rockMaterial.diffuseColor = new BABYLON.Color3(0.6, 0.6, 0.6)
+
+          const rockTemplate = BABYLON.MeshBuilder.CreatePolyhedron(
+            'rock',
+            {
+              type: 2,
+              size: 1,
+            },
+            this.scene
+          )
+          rockTemplate.material = rockMaterial
+
+          let rocksPlaced = 0
+          while (rocksPlaced < ROCK_COUNT) {
+            const x = Math.random() * SIZE - SIZE / 2
+            const z = Math.random() * SIZE - SIZE / 2
+
+            // Calculate rock density and tree-only zone density
+            const rockDensity =
+              (this.generateNoise(x * ROCK_NOISE_SCALE, z * ROCK_NOISE_SCALE) +
+                1) /
+              2
+            const mixedDensity =
+              (this.generateNoise(x * 0.0025, z * 0.0025) + 1) / 2
+            const treeOnlyDensity =
+              (this.generateNoise(
+                x * NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_NOISE_SCALE,
+                z * NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_NOISE_SCALE
+              ) +
+                1) /
+              2
+
+            // Get terrain height
+            const nx = x * NOISE_SCALE
+            const nz = z * NOISE_SCALE
+            const height =
+              this.generateNoise(nx, nz) * HEIGHT_SCALE +
+              this.generateNoise(nx * 2, nz * 2) * (HEIGHT_SCALE / 2) +
+              this.generateNoise(nx * 4, nz * 4) * (HEIGHT_SCALE / 4)
+
+            // Place rocks only if not in a tree-only zone
+            if (
+              treeOnlyDensity <
+                NaturalLandscape.VEGETATION_CONFIG.TREE_ONLY_THRESHOLD &&
+              (rockDensity > ROCK_DENSITY_THRESHOLD ||
+                (mixedDensity > MIXED_AREA_THRESHOLD && Math.random() > 0.7)) &&
+              height > HEIGHT_SCALE * 0.15
+            ) {
+              const instance = rockTemplate.createInstance('rock' + rocksPlaced)
+              instance.position = new BABYLON.Vector3(x, height, z)
+              instance.rotation = new BABYLON.Vector3(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+              )
+              instance.scaling = new BABYLON.Vector3(
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE),
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE),
+                MIN_SCALE + Math.random() * (MAX_SCALE - MIN_SCALE)
+              )
+              rocksPlaced++
+            }
+          }
+        }
+
+        updateTrees() {
+          const leafInstances = this.scene.meshes.filter((mesh) =>
+            mesh.name.startsWith('leavesTemplate')
+          )
+
+          leafInstances.forEach((leaves, index) => {
+            const colorIndex = index % 5
+            const material = new BABYLON.StandardMaterial(
+              `leaves${index}`,
+              this.scene
+            )
+
+            material.diffuseColor = this.currentSeason.treeColors[colorIndex]
+            leaves.material = material
+
+            // Adjust visibility based on season's tree density
+            /*
+            const originalScale = leaves.scaling.x // Preserve X/Z scale
+            leaves.scaling = new BABYLON.Vector3(
+              originalScale,
+              originalScale * this.currentSeason.treeDensity,
+              originalScale
+            )*/
+          })
+        }
+
+        createSky() {
+          // Create the skybox
+          this.skybox = BABYLON.MeshBuilder.CreateBox(
+            'skyBox',
+            { size: 10000.0 },
+            this.scene
+          )
+
+          // Create and configure sky material
+          this.skyMaterial = new BABYLON.SkyMaterial('skyMaterial', this.scene)
+          this.skyMaterial.backFaceCulling = false
+
+          // Apply material to skybox
+          this.skybox.material = this.skyMaterial
+
+          // Ensure skybox follows the camera
+          this.skybox.infiniteDistance = true
+
+          // Make sure the skybox is rendered first
+          this.skybox.renderingGroupId = 0
+
+          // Disable skybox from being pickable
+          this.skybox.isPickable = false
+
+          // Initialize with current season's sky configuration
+          this.updateSkyConfig(this.currentSeason.skyConfig)
+
+          // Position the skybox at the scene origin
+          this.skybox.position = BABYLON.Vector3.Zero()
+        }
+
+        resetIdleTimer() {
+          console.log('reset')
+          this.lastActivityTime = Date.now()
+          if (this.isIdle) {
+            this.switchToMainCamera()
+          }
+        }
+
+        checkIdle() {
+          const now = Date.now()
+          if (now - this.lastActivityTime > this.idleTimeout && !this.isIdle) {
+            // Add animation to the idle camera
+            this.animateIdleCamera()
+            this.switchToIdleCamera()
+          }
+          requestAnimationFrame(this.checkIdle.bind(this))
+        }
+
+        switchToIdleCamera() {
+          this.isIdle = true
+          this.activeCamera = this.idleCamera
+          this.scene.activeCamera = this.idleCamera
+        }
+
+        switchToMainCamera() {
+          this.isIdle = false
+          this.activeCamera = this.camera
+          this.scene.activeCamera = this.camera
+        }
+
+        animateIdleCamera() {
+          let angle = this.camera.alpha
+          const speed = 0.001 // Adjust speed as needed
+
+          this.scene.registerBeforeRender(() => {
+            if (this.isIdle) {
+              angle += speed
+              this.idleCamera.alpha = angle // Rotate around the center
+              this.idleCamera.beta = Math.PI / 2.2
+            }
+          })
+        }
+
+        setSeason(season) {
+          this.currentSeason = season
+          this.updateSeasonalEffects()
+        }
+
+        updateSeasonalEffects() {
+          if (!this.light || !this.terrainMaterial) {
+            console.warn(
+              'Scene not fully initialized. Call createScene() first.'
+            )
+            return
+          }
+
+          // Update lighting
+          this.light.intensity = this.currentSeason.lightIntensity
+          this.light.direction = this.currentSeason.lightDirection
+          this.light.diffuse = this.currentSeason.lightColor
+
+          this.dirLight.intensity = this.currentSeason.dirLightColorIntensity
+          this.dirLight.direction = this.currentSeason.dirLightDirection
+          this.dirLight.diffuse = this.currentSeason.dirLightColor
+
+          // Update ground material
+          this.terrainMaterial.diffuseColor = this.currentSeason.groundColor
+
+          // Update fog
+          this.scene.fogDensity = this.currentSeason.fogDensity
+          this.scene.fogColor = this.currentSeason.fogColor
+
+          // Update sky
+          this.updateSkyConfig(this.currentSeason.skyConfig)
+
+          // Update trees
+          this.updateTrees()
+        }
+
+        // Get current season value
+        getCurrentSeason() {
+          return this.currentSeason
+        }
+
+        updateSkyConfig(config) {
+          if (!this.skyMaterial) return
+
+          // Basic parameters
+          this.skyMaterial.turbidity = config.turbidity
+          this.skyMaterial.luminance = config.luminance
+          this.skyMaterial.rayleigh = config.rayleigh
+          this.skyMaterial.mieCoefficient = config.mieCoefficient
+          this.skyMaterial.mieDirectionalG = config.mieDirectionalG
+
+          // Set sun position
+          this.skyMaterial.useSunPosition = true
+          const distance = 10000
+          const theta = Math.PI * (config.inclination - 0.5)
+          const phi = 2 * Math.PI * (config.azimuth - 0.5)
+
+          const sunPosition = new BABYLON.Vector3(
+            distance * Math.cos(phi),
+            distance * Math.sin(theta),
+            distance * Math.sin(phi)
+          )
+          this.skyMaterial.sunPosition = sunPosition
+
+          // Force the sky material to update
+          //this.skyMaterial.updateShaderUniforms()
+        }
+
+        // Get all available seasons
+        getAvailableSeasons() {
+          return Object.keys(NaturalLandscape.SEASON_CONFIG).map(
+            (seasonKey) => ({
+              name: seasonKey,
+              config: NaturalLandscape.SEASON_CONFIG[seasonKey],
+            })
+          )
+        }
+
+        // Noise generation methods remain the same
+        generateNoise(x, y) {
+          const X = Math.floor(x) & 255
+          const Y = Math.floor(y) & 255
+          x -= Math.floor(x)
+          y -= Math.floor(y)
+
+          const u = this.fade(x)
+          const v = this.fade(y)
+
+          const A = this.p[X] + Y
+          const B = this.p[X + 1] + Y
+
+          return this.lerp(
+            v,
+            this.lerp(
+              u,
+              this.grad(this.p[A], x, y),
+              this.grad(this.p[B], x - 1, y)
+            ),
+            this.lerp(
+              u,
+              this.grad(this.p[A + 1], x, y - 1),
+              this.grad(this.p[B + 1], x - 1, y - 1)
+            )
+          )
+        }
+
+        fade(t) {
+          return t * t * t * (t * (t * 6 - 15) + 10)
+        }
+        lerp(t, a, b) {
+          return a + t * (b - a)
+        }
+        grad(hash, x, y) {
+          const h = hash & 15
+          const grad = 1 + (h & 7)
+          return (h & 8 ? -grad : grad) * x + (h & 4 ? -grad : grad) * y
+        }
+
+        animate() {
+          this.engine.runRenderLoop(() => {
+            this.scene.render()
+          })
+        }
+      }
+
+      // Initialize the scene
+      window.addEventListener('DOMContentLoaded', () => {
+        const loadingScreen = document.getElementById('loadingScreen')
+        const fpsCounter = document.getElementById('fpsCounter') // Get the FPS counter element
+        const landscape = new NaturalLandscape('renderCanvas')
+
+        landscape.createScene()
+
+        // Get current season
+
+        // Get all available seasons
+        const seasons = landscape.getAvailableSeasons()
+
+        landscape.setSeason(NaturalLandscape.SEASON_CONFIG.SUMMER)
+
+        cycleThroughSeasons()
+
+        landscape.scene.executeWhenReady(() => {
+          loadingScreen.style.display = 'none'
+          landscape.animate()
+        })
+
+        window.addEventListener('resize', () => {
+          landscape.engine.resize()
+        })
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            landscape.engine.stopRenderLoop()
+          } else {
+            landscape.animate()
+          }
+        })
+
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => {
+            landscape.engine.resize()
+          }, 200)
+        })
+
+        landscape.canvas.addEventListener(
+          'touchmove',
+          (e) => {
+            e.preventDefault()
+          },
+          { passive: false }
+        )
+
+        // You can also create a simple season cycling function
+        function cycleThroughSeasons() {
+          const seasons = landscape.getAvailableSeasons()
+          let currentIndex = 0
+
+          setInterval(() => {
+            currentIndex = (currentIndex + 1) % seasons.length
+            landscape.setSeason(
+              NaturalLandscape.SEASON_CONFIG[seasons[currentIndex].name]
+            )
+          }, 10000) // Change every 10 seconds
+        }
+      })
+    </script>
+  </body>
+</html>
