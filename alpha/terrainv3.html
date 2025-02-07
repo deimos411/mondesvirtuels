@@ -51,6 +51,19 @@
         line-height: 1.4;
       }
 
+      /* Add this new style for the FPS counter */
+      .fps-counter {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-size: 16px;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 8px;
+      }
+
       @media (max-width: 768px) {
         .controls {
           top: auto;
@@ -86,6 +99,8 @@
       <p>Touch: One finger to rotate, two fingers to zoom</p>
     </div>
     <div id="loadingScreen" class="loading">Loading Scene...</div>
+    <!-- Add this new div for the FPS counter -->
+    <div id="fpsCounter" class="fps-counter">FPS: 0</div>
 
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/babylonjs@6.32.1/babylon.min.js"></script>
@@ -250,6 +265,7 @@
           MIN_RADIUS: 500, // Minimum camera distance
           RADIUS: 1200, // Camera distance
           MAX_RADIUS: 3000, // Maximum camera distance
+          IDLE_TIMEOUT: 10000, // 10 seconds
         }
 
         constructor(canvasId) {
@@ -265,26 +281,15 @@
           this.terrainMaterial = null
           this.skyMaterial = null
           this.skybox = null
-
-          this.idleCamera = new BABYLON.ArcRotateCamera(
-            'idleCamera',
-            Math.PI + 0.4, // alpha (horizontal rotation)
-            Math.PI / 2.2, // beta (vertical rotation, lowered to 45 degrees)
-            1200, // radius
-            BABYLON.Vector3.Zero(), // target (center of the scene)
-            this.scene
-          )
-
-          this.idleCamera.lowerRadiusLimit = 1200 // Fixed radius
-          this.idleCamera.upperRadiusLimit = 1200 // Fixed radius
-          this.idleCamera.attachControl(this.canvas, false) // Disable controls for idle camera
+          this.idleCamera = null
+          this.camera = null
 
           // Store the active camera
           this.activeCamera = this.camera
 
           // Track user activity
           this.lastActivityTime = Date.now()
-          this.idleTimeout = 10000 // 10 seconds
+          this.idleTimeout = NaturalLandscape.CAMERA_CONFIG.IDLE_TIMEOUT // 10 seconds
           this.isIdle = false
 
           // Add event listeners for user activity
@@ -331,9 +336,6 @@
           // Start the idle check loop
           this.checkIdle()
 
-          // Add animation to the idle camera
-          this.animateIdleCamera()
-
           // Initialize permutation table for noise generation
           this.p = new Array(512)
           for (let i = 0; i < 256; i++) {
@@ -342,47 +344,6 @@
           for (let i = 0; i < 256; i++) {
             this.p[256 + i] = this.p[i]
           }
-        }
-
-        resetIdleTimer() {
-          console.log('reset')
-          this.lastActivityTime = Date.now()
-          if (this.isIdle) {
-            this.switchToMainCamera()
-          }
-        }
-
-        checkIdle() {
-          const now = Date.now()
-          if (now - this.lastActivityTime > this.idleTimeout && !this.isIdle) {
-            this.switchToIdleCamera()
-          }
-          requestAnimationFrame(this.checkIdle.bind(this))
-        }
-
-        switchToIdleCamera() {
-          this.isIdle = true
-          this.activeCamera = this.idleCamera
-          this.scene.activeCamera = this.idleCamera
-        }
-
-        switchToMainCamera() {
-          this.isIdle = false
-          this.activeCamera = this.camera
-          this.scene.activeCamera = this.camera
-        }
-
-        animateIdleCamera() {
-          let angle = 0
-          const speed = 0.001 // Adjust speed as needed
-
-          this.scene.registerBeforeRender(() => {
-            if (this.isIdle) {
-              angle += speed
-              this.idleCamera.alpha = angle // Rotate around the center
-              this.idleCamera.beta = Math.PI / 2.2
-            }
-          })
         }
 
         createScene() {
@@ -401,6 +362,22 @@
             NaturalLandscape.CAMERA_CONFIG.MIN_RADIUS
           this.camera.upperRadiusLimit =
             NaturalLandscape.CAMERA_CONFIG.MAX_RADIUS
+
+          // Idle camera setup
+          this.idleCamera = new BABYLON.ArcRotateCamera(
+            'idleCamera',
+            Math.PI + 0.4, // alpha (horizontal rotation)
+            Math.PI / 2.2, // beta (vertical rotation, lowered to 45 degrees)
+            NaturalLandscape.CAMERA_CONFIG.RADIUS, // radius
+            BABYLON.Vector3.Zero(), // target (center of the scene)
+            this.scene
+          )
+
+          this.idleCamera.lowerRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.RADIUS // Fixed radius
+          this.idleCamera.upperRadiusLimit =
+            NaturalLandscape.CAMERA_CONFIG.RADIUS // Fixed radius
+          this.idleCamera.attachControl(this.canvas, false) // Disable controls for idle camera
 
           // Lighting setup - store references
           this.light = new BABYLON.HemisphericLight(
@@ -433,6 +410,10 @@
 
           // Assuming you have a Babylon.js scene instance
           //this.scene.debugLayer.show()
+
+          this.scene.onBeforeRenderObservable.add(() => {
+            fpsCounter.textContent = this.engine.getFps().toFixed()
+          })
 
           return this.scene
         }
@@ -789,6 +770,49 @@
           this.skybox.position = BABYLON.Vector3.Zero()
         }
 
+        resetIdleTimer() {
+          console.log('reset')
+          this.lastActivityTime = Date.now()
+          if (this.isIdle) {
+            this.switchToMainCamera()
+          }
+        }
+
+        checkIdle() {
+          const now = Date.now()
+          if (now - this.lastActivityTime > this.idleTimeout && !this.isIdle) {
+            // Add animation to the idle camera
+            this.animateIdleCamera()
+            this.switchToIdleCamera()
+          }
+          requestAnimationFrame(this.checkIdle.bind(this))
+        }
+
+        switchToIdleCamera() {
+          this.isIdle = true
+          this.activeCamera = this.idleCamera
+          this.scene.activeCamera = this.idleCamera
+        }
+
+        switchToMainCamera() {
+          this.isIdle = false
+          this.activeCamera = this.camera
+          this.scene.activeCamera = this.camera
+        }
+
+        animateIdleCamera() {
+          let angle = this.camera.alpha
+          const speed = 0.001 // Adjust speed as needed
+
+          this.scene.registerBeforeRender(() => {
+            if (this.isIdle) {
+              angle += speed
+              this.idleCamera.alpha = angle // Rotate around the center
+              this.idleCamera.beta = Math.PI / 2.2
+            }
+          })
+        }
+
         setSeason(season) {
           this.currentSeason = season
           this.updateSeasonalEffects()
@@ -917,6 +941,7 @@
       // Initialize the scene
       window.addEventListener('DOMContentLoaded', () => {
         const loadingScreen = document.getElementById('loadingScreen')
+        const fpsCounter = document.getElementById('fpsCounter') // Get the FPS counter element
         const landscape = new NaturalLandscape('renderCanvas')
 
         landscape.createScene()
@@ -971,7 +996,7 @@
             landscape.setSeason(
               NaturalLandscape.SEASON_CONFIG[seasons[currentIndex].name]
             )
-          }, 5000) // Change every 5 seconds
+          }, 10000) // Change every 10 seconds
         }
       })
     </script>
