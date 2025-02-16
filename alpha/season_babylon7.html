@@ -5,9 +5,16 @@
     <!-- Previous head content remains exactly the same -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Natural Landscape - BabylonJS 7.48</title>
+    <meta name="description" content="Free Web tutorials" />
+    <meta
+      name="keywords"
+      content="BabylonJS, 3D, landscape, procedural, HTML, CSS, JavaScript"
+    />
+    <meta name="author" content="Josquin BERNARD" />
+    <link rel="canonical" href="https://virtualworlds.fun/" />
+    <title>3D Natural Landscape</title>
+
     <style>
-      /* Previous styles remain exactly the same */
       * {
         margin: 0;
         padding: 0;
@@ -51,7 +58,6 @@
         line-height: 1.4;
       }
 
-      /* Add this new style for the FPS counter */
       .fps-counter {
         position: fixed;
         top: 20px;
@@ -62,6 +68,58 @@
         background: rgba(0, 0, 0, 0.7);
         padding: 10px;
         border-radius: 8px;
+      }
+
+      .edit-radius-controls {
+        position: fixed;
+        top: 60px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 1000;
+      }
+
+      .radius-button {
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 14px;
+        position: relative;
+      }
+
+      .radius-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        transform: translateY(-50%);
+        width: 10px;
+        height: 10px;
+        background: yellow;
+        border-radius: 50%;
+      }
+
+      .radius-button.small::before {
+        width: 8px;
+        height: 8px;
+      }
+
+      .radius-button.medium::before {
+        width: 12px;
+        height: 12px;
+      }
+
+      .radius-button.large::before {
+        width: 16px;
+        height: 16px;
+      }
+
+      .radius-button.active {
+        background: rgba(255, 255, 0, 0.3);
       }
 
       @media (max-width: 768px) {
@@ -102,7 +160,21 @@
     <!-- Add this new div for the FPS counter -->
     <div id="fpsCounter" class="fps-counter">FPS: 0</div>
 
+    <div id="editRadiusControls" class="edit-radius-controls">
+      <div class="radius-button small" data-radius="50"></div>
+      <div class="radius-button medium" data-radius="150"></div>
+      <div class="radius-button large" data-radius="300"></div>
+    </div>
+
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.32.1/babylon.js"></script> -->
+    <!-- v6 -->
+    <!--
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs@6.32.1/babylon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@6.32.1/babylon.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@6.32.1/babylonjs.materials.min.js"></script>
+  -->
+
+    <!-- v7 -->
     <script src="https://cdn.jsdelivr.net/npm/babylonjs@7.48.1/babylon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@7.48.1/babylon.gui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@7.48.1/babylonjs.materials.min.js"></script>
@@ -111,11 +183,16 @@
       class NaturalLandscape {
         static TERRAIN_CONFIG = {
           SIZE: 3000,
-          SUBDIVISIONS: 1000,
+          SUBDIVISIONS: 250,
           HEIGHT_SCALE: 40,
           NOISE_SCALE: 0.002,
           COLOR: new BABYLON.Color3(0.5, 0.6, 0.3), // light green
           DIFFUSE_COLOR: new BABYLON.Color3(0, 0, 0),
+        }
+
+        static TOOL_CONFIG = {
+          EDIT_RADIUS: 150, // midly large
+          EDIT_STRENGTH: 20, // midly strong
         }
 
         static SEASON_CONFIG = {
@@ -266,6 +343,7 @@
           RADIUS: 1200, // Camera distance
           MAX_RADIUS: 3000, // Maximum camera distance
           IDLE_TIMEOUT: 10000, // 10 seconds
+          ZOOM_SPEED: 0.25, // Zoom speed (adjust as needed)
         }
 
         constructor(canvasId) {
@@ -312,7 +390,7 @@
           // Add more comprehensive event listeners
           this.canvas.addEventListener('pointerdown', (event) => {
             // Check if left mouse button is pressed
-            console.log('pointerdown')
+
             if (event.button === 0) {
               this.isMouseDown = true
               this.resetIdleTimer()
@@ -336,18 +414,221 @@
           // Start the idle check loop
           this.checkIdle()
 
-          // Initialize permutation table for noise generation
+          // Parse seed from URL or generate random
+          const urlParams = new URLSearchParams(window.location.search)
+          const seedParam = urlParams.get('seed')
+          let seed
+          if (seedParam !== null) {
+            seed = isNaN(seedParam)
+              ? stringToSeed(seedParam)
+              : parseInt(seedParam)
+          } else {
+            seed = Math.floor(Math.random() * 0xffffffff)
+          }
+
+          console.log('seed : ' + seed)
+
+          // Initialize PRNG
+          this.prng = this.createPrng(seed)
+
+          // Initialize permutation table with PRNG
           this.p = new Array(512)
           for (let i = 0; i < 256; i++) {
-            this.p[i] = Math.floor(Math.random() * 256)
+            this.p[i] = Math.floor(this.prng() * 256)
           }
           for (let i = 0; i < 256; i++) {
             this.p[256 + i] = this.p[i]
           }
+
+          // Add this new property to track if we're editing terrain
+          this.isEditingTerrain = false
+          this.lastMouseY = 0
+          this.editRadius = 150
+          this.editStrength = 20
+
+          // Modify the canvas event listeners to prevent default right-click behavior
+          this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          })
+
+          // Update mouse handlers
+          this.canvas.addEventListener('pointerdown', (e) => {
+            if (e.button === 2) {
+              // Right mouse button
+              e.preventDefault()
+              this.isEditingTerrain = true
+              this.lastMouseY = e.clientY
+            }
+          })
+
+          this.canvas.addEventListener('pointerup', (e) => {
+            if (e.button === 2) {
+              e.preventDefault()
+              this.isEditingTerrain = false
+            }
+          })
+
+          this.canvas.addEventListener('pointermove', (e) => {
+            if (this.isEditingTerrain) {
+              const deltaY = e.clientY - this.lastMouseY
+              this.lastMouseY = e.clientY
+              this.modifyTerrainElevation(e.clientX, e.clientY, -deltaY * 0.1)
+            }
+          })
+        }
+
+        modifyTerrainElevation(mouseX, mouseY, strength) {
+          const pickResult = this.scene.pick(
+            mouseX,
+            mouseY,
+            (mesh) => mesh.name === 'ground'
+          )
+          if (!pickResult.hit) return
+
+          const ground = pickResult.pickedMesh
+
+          // Get the current vertex data
+          const positions = ground.getVerticesData(
+            BABYLON.VertexBuffer.PositionKind
+          )
+          const indices = ground.getIndices()
+
+          // Find affected vertices within radius
+          const pickedPoint = pickResult.pickedPoint
+          const affectedVertices = []
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const x = positions[i]
+            const z = positions[i + 2]
+            const distance = Math.sqrt(
+              (x - pickedPoint.x) ** 2 + (z - pickedPoint.z) ** 2
+            )
+
+            if (distance < this.editRadius) {
+              affectedVertices.push(i + 1) // Store indices of Y coordinates
+            }
+          }
+
+          // Modify vertex heights
+          let modified = false
+          affectedVertices.forEach((index) => {
+            const falloff =
+              1 -
+              Math.sqrt(
+                (positions[index - 1] - pickedPoint.x) ** 2 +
+                  (positions[index + 1] - pickedPoint.z) ** 2
+              ) /
+                this.editRadius
+
+            positions[index] += strength * falloff * this.editStrength
+            modified = true
+          })
+
+          if (modified) {
+            // Recompute normals
+            const normals = new Float32Array(positions.length)
+            BABYLON.VertexData.ComputeNormals(positions, indices, normals)
+
+            // Update positions and normals
+            ground.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions)
+            ground.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals)
+
+            // Force the mesh to update
+            ground.refreshBoundingInfo()
+            ground.computeWorldMatrix(true)
+
+            // Update vegetation and rocks after terrain modification
+            this.updateObjectsElevation(ground, pickedPoint, positions)
+          }
+        }
+
+        updateObjectsElevation(groundMesh, pickedPoint, positions) {
+          const affectedObjects = []
+
+          // Collect nearby trees and rocks
+          this.scene.meshes.forEach((mesh) => {
+            if (
+              mesh.name.startsWith('trunkInstance') ||
+              mesh.name.startsWith('rock')
+            ) {
+              const distance = BABYLON.Vector3.Distance(
+                mesh.position,
+                pickedPoint
+              )
+              if (distance < this.editRadius) {
+                affectedObjects.push(mesh)
+              }
+            }
+          })
+
+          // Update positions
+          affectedObjects.forEach((obj) => {
+            const newY = this.getHeightFromTerrain(
+              obj.position.x,
+              obj.position.z,
+              groundMesh,
+              positions
+            )
+            obj.position.y = newY
+
+            // Update leaves for trees
+            if (obj.name.startsWith('trunkInstance')) {
+              const leavesName = obj.name.replace(
+                'trunkInstance',
+                'leavesInstance'
+              )
+              const leaves = this.scene.getMeshByName(leavesName)
+              if (leaves) {
+                const trunkHeight =
+                  NaturalLandscape.VEGETATION_CONFIG.TREE_HEIGHT * obj.scaling.y
+                const leavesHeight =
+                  NaturalLandscape.VEGETATION_CONFIG.TREE_TOP_HEIGHT *
+                  leaves.scaling.y
+                leaves.position.y = newY + trunkHeight / 2 + leavesHeight / 2
+              }
+            }
+          })
+        }
+
+        getHeightFromTerrain(x, z, groundMesh, positions) {
+          const subdivisions = NaturalLandscape.TERRAIN_CONFIG.SUBDIVISIONS
+          const size = NaturalLandscape.TERRAIN_CONFIG.SIZE
+
+          // Convert to grid coordinates
+          const gridX = (x / size + 0.5) * subdivisions
+          const gridZ = (z / size + 0.5) * subdivisions
+
+          const x0 = Math.floor(gridX)
+          const x1 = x0 + 1
+          const z0 = Math.floor(gridZ)
+          const z1 = z0 + 1
+
+          // Clamp indices
+          if (x0 < 0 || x1 > subdivisions || z0 < 0 || z1 > subdivisions)
+            return 0
+
+          // Get vertex indices
+          const idx00 = (z0 * (subdivisions + 1) + x0) * 3
+          const idx01 = (z0 * (subdivisions + 1) + x1) * 3
+          const idx10 = (z1 * (subdivisions + 1) + x0) * 3
+          const idx11 = (z1 * (subdivisions + 1) + x1) * 3
+
+          // Bilinear interpolation
+          const dx = gridX - x0
+          const dz = gridZ - z0
+
+          const y00 = positions[idx00 + 1]
+          const y01 = positions[idx01 + 1]
+          const y10 = positions[idx10 + 1]
+          const y11 = positions[idx11 + 1]
+
+          const y0 = y00 * (1 - dx) + y01 * dx
+          const y1 = y10 * (1 - dx) + y11 * dx
+          return y0 * (1 - dz) + y1 * dz
         }
 
         createScene() {
-          // Camera setup
           this.camera = new BABYLON.ArcRotateCamera(
             'camera',
             Math.PI + 0.4,
@@ -356,6 +637,12 @@
             BABYLON.Vector3.Zero(),
             this.scene
           )
+
+          // Disable right-click panning
+          this.camera.inputs.attached.pointers.buttons = [0, 1] // Only left button and middle button
+          // Set the zoom speed
+          this.camera.inputs.attached.mousewheel.wheelPrecision =
+            NaturalLandscape.CAMERA_CONFIG.ZOOM_SPEED
 
           this.camera.attachControl(this.canvas, true)
           this.camera.lowerRadiusLimit =
@@ -561,8 +848,9 @@
 
           let treesPlaced = 0
           while (treesPlaced < TREE_COUNT) {
-            const x = Math.random() * SIZE - SIZE / 2
-            const z = Math.random() * SIZE - SIZE / 2
+            // Replace all Math.random() with this.prng()
+            const x = this.prng() * SIZE - SIZE / 2
+            const z = this.prng() * SIZE - SIZE / 2
 
             // Calculate tree density and tree-only zone density
             const treeDensity =
@@ -662,8 +950,8 @@
 
           let rocksPlaced = 0
           while (rocksPlaced < ROCK_COUNT) {
-            const x = Math.random() * SIZE - SIZE / 2
-            const z = Math.random() * SIZE - SIZE / 2
+            const x = this.prng() * SIZE - SIZE / 2
+            const z = this.prng() * SIZE - SIZE / 2
 
             // Calculate rock density and tree-only zone density
             const rockDensity =
@@ -727,15 +1015,6 @@
 
             material.diffuseColor = this.currentSeason.treeColors[colorIndex]
             leaves.material = material
-
-            // Adjust visibility based on season's tree density
-            /*
-            const originalScale = leaves.scaling.x // Preserve X/Z scale
-            leaves.scaling = new BABYLON.Vector3(
-              originalScale,
-              originalScale * this.currentSeason.treeDensity,
-              originalScale
-            )*/
           })
         }
 
@@ -890,6 +1169,27 @@
           )
         }
 
+        createPrng(seed) {
+          let a = seed
+          return () => {
+            a |= 0
+            a = (a + 0x6d2b79f5) | 0
+            let t = Math.imul(a ^ (a >>> 15), 1 | a)
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+          }
+        }
+
+        // Add seed parsing and PRNG initialization before the class
+        stringToSeed(str) {
+          let hash = 0
+          for (let i = 0; i < str.length; i++) {
+            hash = (hash << 5) - hash + str.charCodeAt(i)
+            hash |= 0 // Convert to 32-bit integer
+          }
+          return hash
+        }
+
         // Noise generation methods remain the same
         generateNoise(x, y) {
           const X = Math.floor(x) & 255
@@ -944,6 +1244,24 @@
         const landscape = new NaturalLandscape('renderCanvas')
 
         landscape.createScene()
+
+        // Get the radius buttons
+        const radiusButtons = document.querySelectorAll('.radius-button')
+
+        // Add event listeners to the buttons
+        radiusButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const radius = parseInt(button.getAttribute('data-radius'))
+            landscape.editRadius = radius
+
+            // Highlight the selected button
+            radiusButtons.forEach((btn) => btn.classList.remove('active'))
+            button.classList.add('active')
+          })
+        })
+
+        // Initialize the default radius
+        document.querySelector('.radius-button.medium').classList.add('active')
 
         // Get current season
 
