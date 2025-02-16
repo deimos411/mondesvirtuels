@@ -771,7 +771,6 @@
         }
 
         resetIdleTimer() {
-          console.log('reset')
           this.lastActivityTime = Date.now()
           if (this.isIdle) {
             this.switchToMainCamera()
