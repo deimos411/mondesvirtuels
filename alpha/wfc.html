@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Wave Function Collapse generated with Babylonjs + Deepseek + Claude"
+    />
+    <meta
+      name="keywords"
+      content="BabylonJS, 3D, wfc, procedural, HTML, CSS, JavaScript, deepseek, claude"
+    />
+    <meta name="author" content="Josquin BERNARD" />
+    <link rel="canonical" href="https://virtualworlds.fun/" />
+    <title>Wave Function Collapse in Babylon.js</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+      }
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      /* Style for buttons */
+      .controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1;
+      }
+      .controls button {
+        padding: 10px;
+        margin: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="renderCanvas"></canvas>
+
+    <!-- Add buttons for controls -->
+    <div class="controls">
+      <button id="generateButton">Generate</button>
+      <button id="extendButton">Extend</button>
+      <button id="convertButton">Rise</button>
+    </div>
+
+    <script>
+      // Constants
+      const TILE_SIZE = 1 // Size of each tile in 3D space
+      const TILE_TYPES = [
+        'grass',
+        'wood',
+        'hill',
+        'coast',
+        'sea',
+        'mountain',
+        'ocean',
+      ]
+
+      // Add weights to tile types (higher = more likely)
+      const TILE_WEIGHTS = {
+        grass: 10,
+        wood: 6,
+        hill: 4,
+        coast: 5,
+        sea: 4,
+        ocean: 3,
+        mountain: 3,
+      }
+
+      // Adjusted tile rules to limit water spread
+      const TILE_RULES = {
+        grass: ['grass', 'wood', 'hill', 'coast'],
+        wood: ['grass', 'wood', 'hill', 'mountain'],
+        hill: ['grass', 'wood', 'hill', 'mountain'],
+        coast: ['grass', 'coast', 'sea'],
+        sea: ['coast', 'sea', 'ocean'],
+        ocean: ['sea', 'ocean'],
+        mountain: ['hill', 'mountain'],
+      }
+
+      // Tile heights for heightmap
+      const TILE_HEIGHTS = {
+        ocean: 0,
+        sea: 0,
+        coast: 0,
+        grass: 0.5,
+        wood: 0.5, // Same as grass
+        hill: 0.8,
+        mountain: 1.2,
+        undecided: 0,
+      }
+
+      // Tile colors for visualization
+      const TILE_COLORS = {
+        grass: new BABYLON.Color3(0.4, 0.8, 0.4), // Green
+        wood: new BABYLON.Color3(0.55, 0.27, 0.07), // Brown
+        hill: new BABYLON.Color3(0.5, 0.5, 0.5), // Gray
+        mountain: new BABYLON.Color3(1, 1, 1), // White
+        coast: new BABYLON.Color3(1, 0.9, 0.6), // Sand
+        sea: new BABYLON.Color3(0, 0.4, 0.8), // Blue
+        ocean: new BABYLON.Color3(0.2, 0.2, 1), // Dark Blue
+        undecided: new BABYLON.Color3(0.8, 0.8, 0.8), // Light gray
+      }
+
+      // Global variables
+      let gridSize = 40 // Initial grid size
+      let grid = [] // The grid of tiles
+      let isCollapsing = false // Whether the algorithm is running
+      let scene // Babylon.js scene
+      let templateMeshes = {} // Template meshes for each tile type
+
+      // Initialize grid with a forced land tile in the center
+      const initializeGrid = () => {
+        const newGrid = []
+        for (let y = 0; y < gridSize; y++) {
+          const row = []
+          for (let x = 0; x < gridSize; x++) {
+            // Force the center tile to be land (grass/hill/wood)
+            const isCenter =
+              x === Math.floor(gridSize / 2) && y === Math.floor(gridSize / 2)
+            const initialTypes = isCenter
+              ? ['grass', 'wood', 'hill']
+              : [...TILE_TYPES]
+
+            row.push({
+              x,
+              y,
+              possibilities: [...initialTypes],
+              collapsed: false,
+              type: 'undecided',
+              mesh: null,
+            })
+          }
+          newGrid.push(row)
+        }
+        return newGrid
+      }
+      // Get valid neighbors for a position
+      const getNeighbors = (grid, x, y) => {
+        const neighbors = []
+        const directions = [
+          { dx: 0, dy: -1 }, // Up
+          { dx: 1, dy: 0 }, // Right
+          { dx: 0, dy: 1 }, // Down
+          { dx: -1, dy: 0 }, // Left
+        ]
+
+        for (const dir of directions) {
+          const newX = x + dir.dx
+          const newY = y + dir.dy
+
+          if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
+            neighbors.push(grid[newY][newX])
+          }
+        }
+
+        return neighbors
+      }
+
+      // Find the tile with the fewest possibilities
+      const findLowestEntropyTile = (grid) => {
+        let lowestEntropy = Infinity
+        let candidates = []
+
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const tile = grid[y][x]
+            if (!tile.collapsed) {
+              const entropy = tile.possibilities.length
+              if (entropy === 0) continue // Skip impossible tiles
+
+              if (entropy < lowestEntropy) {
+                lowestEntropy = entropy
+                candidates = [tile]
+              } else if (entropy === lowestEntropy) {
+                candidates.push(tile)
+              }
+            }
+          }
+        }
+
+        if (candidates.length === 0) return null
+        return candidates[Math.floor(Math.random() * candidates.length)]
+      }
+
+      // Collapse a single tile
+      const collapseTile = (grid, tile) => {
+        if (tile.possibilities.length === 0) return null
+
+        // Calculate weighted possibilities
+        const weightedPossibilities = []
+        for (const type of tile.possibilities) {
+          const weight = TILE_WEIGHTS[type] || 1
+          for (let i = 0; i < weight; i++) {
+            weightedPossibilities.push(type)
+          }
+        }
+
+        // Randomly select from weighted list
+        const selectedType =
+          weightedPossibilities[
+            Math.floor(Math.random() * weightedPossibilities.length)
+          ]
+
+        // Update the tile
+        tile.collapsed = true
+        tile.possibilities = [selectedType]
+        tile.type = selectedType
+
+        // Update the tile's mesh by replacing it with an instance of the appropriate template
+        if (tile.mesh) {
+          tile.mesh.dispose() // Dispose of the old mesh
+        }
+
+        // Ensure the template exists
+        if (!templateMeshes[selectedType]) {
+          console.error(`Template for type "${selectedType}" not found.`)
+          return grid
+        }
+
+        // Create an instance of the template
+        tile.mesh = templateMeshes[selectedType].createInstance(
+          `tile_${tile.x}_${tile.y}`
+        )
+        tile.mesh.position.x = tile.x * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+        tile.mesh.position.z = tile.y * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+        tile.mesh.position.y = 0
+
+        return grid
+      }
+
+      // Propagate constraints from a tile to its neighbors
+      const propagate = (grid) => {
+        let stack = []
+
+        // Find all collapsed tiles and add their neighbors to the stack
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const tile = grid[y][x]
+            if (tile.collapsed) {
+              const neighbors = getNeighbors(grid, x, y)
+              for (const neighbor of neighbors) {
+                if (!neighbor.collapsed) {
+                  stack.push({ tile: neighbor, checkNeighbor: tile })
+                }
+              }
+            }
+          }
+        }
+
+        while (stack.length > 0) {
+          const { tile, checkNeighbor } = stack.pop()
+
+          if (tile.collapsed) continue
+
+          const oldPossibilities = [...tile.possibilities]
+
+          // Filter possibilities based on the collapsed neighbor
+          if (checkNeighbor.collapsed) {
+            const checkType = checkNeighbor.type
+            const validNeighbors = TILE_RULES[checkType] || []
+
+            // Keep only possibilities that are valid neighbors
+            tile.possibilities = tile.possibilities.filter((p) =>
+              validNeighbors.includes(p)
+            )
+          }
+
+          // If possibilities changed, add this tile's neighbors to the stack
+          if (oldPossibilities.length !== tile.possibilities.length) {
+            const neighbors = getNeighbors(grid, tile.x, tile.y)
+            for (const neighbor of neighbors) {
+              if (!neighbor.collapsed) {
+                stack.push({ tile: neighbor, checkNeighbor: tile })
+              }
+            }
+          }
+
+          // If only one possibility remains, collapse the tile
+          if (tile.possibilities.length === 1 && !tile.collapsed) {
+            collapseTile(grid, tile)
+          }
+        }
+
+        return grid
+      }
+
+      // Run one step of the WFC algorithm
+      const runStep = () => {
+        // 1. Find the tile with the lowest entropy
+        const tileToCollapse = findLowestEntropyTile(grid)
+
+        // If no tile found, we're either done or stuck
+        if (!tileToCollapse) {
+          isCollapsing = false
+          return
+        }
+
+        // 2. Collapse that tile
+        collapseTile(grid, tileToCollapse)
+
+        // 3. Propagate constraints
+        propagate(grid)
+
+        // Check if we're done
+        const allCollapsed = grid.every((row) =>
+          row.every((tile) => tile.collapsed)
+        )
+        if (allCollapsed) {
+          isCollapsing = false
+        } else {
+          // Continue collapsing
+          setTimeout(runStep, 1)
+        }
+      }
+
+      // Extend the grid by 50%
+      const extendGrid = () => {
+        const oldGrid = grid
+        const oldSize = gridSize
+        gridSize = Math.floor(gridSize * 1.5) // Extend by 50%
+
+        const newGrid = initializeGrid()
+
+        const offset = Math.floor((gridSize - oldSize) / 2)
+
+        // Copy old tiles into the new grid's center
+        for (let y = 0; y < oldSize; y++) {
+          for (let x = 0; x < oldSize; x++) {
+            const oldTile = oldGrid[y][x]
+            const newX = x + offset
+            const newY = y + offset
+
+            newGrid[newY][newX] = { ...oldTile, x: newX, y: newY }
+
+            // Update mesh position for existing tiles
+            if (oldTile.mesh) {
+              oldTile.mesh.position.x =
+                newX * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+              oldTile.mesh.position.z =
+                newY * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+            }
+          }
+        }
+
+        // Create meshes for new tiles
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const tile = newGrid[y][x]
+            if (!tile.mesh) {
+              tile.mesh = templateMeshes['undecided'].createInstance(
+                `tile_${x}_${y}`
+              )
+              tile.mesh.position.x = x * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+              tile.mesh.position.z = y * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+              tile.mesh.position.y = 0
+              tile.mesh.metadata = { isTile: true }
+            }
+          }
+        }
+
+        grid = newGrid
+        isCollapsing = true
+        runStep() // Resume collapsing new tiles
+      }
+
+      // Generate a new grid
+      const generateNewGrid = () => {
+        gridSize = 40 // Reset grid size to initial value
+        grid = initializeGrid()
+        isCollapsing = true
+
+        // Clear existing meshes
+        scene.meshes.forEach((mesh) => {
+          if (mesh.metadata && mesh.metadata.isTile) {
+            mesh.dispose()
+          }
+        })
+
+        // Create template meshes for each tile type
+        for (const type of [...TILE_TYPES, 'undecided']) {
+          const template = BABYLON.MeshBuilder.CreateCylinder(
+            `template_${type}`,
+            { size: TILE_SIZE },
+            scene
+          )
+          template.setEnabled(false) // Disable the template so it's not rendered directly
+
+          const material = new BABYLON.StandardMaterial(`mat_${type}`, scene)
+          material.diffuseColor = TILE_COLORS[type]
+          template.material = material
+
+          templateMeshes[type] = template
+        }
+
+        // Create new instances for the grid
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const tile = grid[y][x]
+            tile.mesh = templateMeshes[tile.type].createInstance(
+              `tile_${x}_${y}`
+            )
+            tile.mesh.position.x = x * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+            tile.mesh.position.z = y * TILE_SIZE - (gridSize * TILE_SIZE) / 2
+            tile.mesh.position.y = 0
+
+            // Add metadata to identify the tile
+            tile.mesh.metadata = { isTile: true }
+          }
+        }
+
+        // Start the WFC algorithm
+        runStep()
+      }
+
+      // Convert the grid into a heightmap
+      const convertToHeightmap = () => {
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const tile = grid[y][x]
+            const height = TILE_HEIGHTS[tile.type] || 0
+
+            // Animate the height change
+            if (tile.mesh) {
+              new BABYLON.Animation.CreateAndStartAnimation(
+                'heightAnim',
+                tile.mesh,
+                'position.y',
+                30, // fps
+                60, // frame count
+                tile.mesh.position.y,
+                height,
+                BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+              )
+            }
+          }
+        }
+      }
+
+      // Create the Babylon.js scene
+      const createScene = () => {
+        const canvas = document.getElementById('renderCanvas')
+        const engine = new BABYLON.Engine(canvas, true)
+        scene = new BABYLON.Scene(engine)
+
+        // Add a camera
+        const camera = new BABYLON.ArcRotateCamera(
+          'camera',
+          Math.PI / 2,
+          Math.PI / 3.5, // Lower angle to see height
+          80, // Increased radius
+          new BABYLON.Vector3(0, 10, 0), // Higher target
+          scene
+        )
+        camera.attachControl(canvas, true)
+
+        // Add a light
+        const light = new BABYLON.HemisphericLight(
+          'light',
+          new BABYLON.Vector3(1, 1, 0),
+          scene
+        )
+
+        // Generate the initial grid
+        generateNewGrid()
+
+        // Render loop
+        engine.runRenderLoop(() => {
+          scene.render()
+        })
+
+        // Resize event
+        window.addEventListener('resize', () => {
+          engine.resize()
+        })
+      }
+
+      // Initialize the scene
+      createScene()
+
+      // Add event listeners for the buttons
+      document
+        .getElementById('generateButton')
+        .addEventListener('click', () => {
+          generateNewGrid()
+        })
+
+      document.getElementById('extendButton').addEventListener('click', () => {
+        extendGrid()
+      })
+
+      document.getElementById('convertButton').addEventListener('click', () => {
+        convertToHeightmap()
+      })
+    </script>
+  </body>
+</html>
